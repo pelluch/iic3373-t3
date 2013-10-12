@@ -1,0 +1,3 @@
+#!/bin/bash
+mkdir -p /usr/local/include/CL
+cp opencl-headers/* /usr/local/include/CL
