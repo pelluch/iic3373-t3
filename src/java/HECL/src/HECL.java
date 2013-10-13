@@ -66,8 +66,6 @@ public class HECL {
         // always make sure to release the context under all circumstances
         // not needed for this particular sample but recommented
         try{
-            
-        	
             // select fastest device
             CLDevice device = context.getMaxFlopsDevice();
             out.println("using "+device);
@@ -113,8 +111,7 @@ public class HECL {
             
             // show resulting image.
             FloatBuffer bufferB = imageB.getBuffer();
-            
-            
+                        
             CLBuffer<FloatBuffer> buffer = context.createBuffer(bufferB, CLBuffer.Mem.READ_WRITE); 
             show(createImage(image.getWidth(), image.getHeight(), buffer), image.getWidth()/2, 50, "Resulting Image");
 
