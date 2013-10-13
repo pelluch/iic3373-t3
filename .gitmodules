@@ -1,0 +1,3 @@
+[submodule "src/jocl-demos"]
+	path = src/jocl-demos
+	url = git://jausoft.com/srv/scm/jocl-demos
