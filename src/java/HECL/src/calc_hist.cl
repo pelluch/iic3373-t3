@@ -1,4 +1,5 @@
 
+    
     kernel void copy_image(read_only image2d_t input, write_only image2d_t output, const int width, const int height) {
     	
     	//CLK_FILTER_NEAREST - Parecido a lo de bilinear filtering
@@ -9,6 +10,6 @@
         int y = get_global_id(1); 
         
         int2 coord = (int2)(x,y); 
-        uint4 pixel_value = read_imageui(input, sampler, coord);	
- 		write_imageui(output, coord, pixel_value); 
+        float4 pixel_value = read_imagef(input, sampler, coord);	
+ 		write_imagef(output, coord, pixel_value); 
     } 
