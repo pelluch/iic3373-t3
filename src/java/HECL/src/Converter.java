@@ -23,10 +23,18 @@ public class Converter {
 
 	public static enum Type { RGB, SPHERICAL, LUV, HSV };
 	
-	public static CLImage2d<FloatBuffer> convertTo(CLContext context, CLDevice device, CLProgram program, 
-			String kernelName, Type inputType, Type outputType) {
+	public static CLImage2d<FloatBuffer> convertTo(CLParams clParams, BufferedImage inputImg, ChannelOrder inputType, ChannelOrder outputType) {
+				
+		int width = inputImg.getWidth();
+		int height = inputImg.getHeight();
 		
-		CLImage2d<FloatBuffer> imageA = context.createImage2d(Buffers.newDirectFloatBuffer(pixels), image.getWidth(), image.getHeight(), format); 
+		float[] pixels = inputImg.getRaster().getPixels(0, 0, width, height, (float[])null);
+		CLImage2d<FloatBuffer> outputImg = clParams.getContext().createImage2d(
+				Buffers.newDirectFloatBuffer(pixels),
+				width,
+				height,
+				format); 
+		
         CLImage2d<FloatBuffer> imageB = context.createImage2d(Buffers.newDirectFloatBuffer(pixels.length), image.getWidth(), image.getHeight(), format); 
 		
         
