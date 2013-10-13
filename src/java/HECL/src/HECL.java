@@ -12,6 +12,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
@@ -69,6 +70,12 @@ public class HECL {
             
             // Call copyImage:
             BufferedImage resultImage = copyImage(clParams, image);
+            
+            // Equalize Image:
+            CLImageFormat format = new CLImageFormat(ChannelOrder.INTENSITY, ChannelType.FLOAT); // We use ChanelOrder.INTENSITY because it's grey
+ 
+            resultImage = equalizeImage(clParams, resultImage, format);
+            
             show(resultImage, image.getWidth()/2, 50, "Resulting Image");
             
         } 
@@ -92,6 +99,69 @@ public class HECL {
         }
     }
     
+    private static int[] getHistogram(CLParams clParams, CLImage2d<FloatBuffer> image)
+    {   	
+    	CLContext context = clParams.getContext();
+    	CLCommandQueue queue = clParams.getQueue();
+        
+    	// Array to store the histogram results
+        int[] histogram = new int[HIST_SIZE];
+        
+        CLBuffer<IntBuffer> histBuffer =  context.createBuffer(Buffers.newDirectIntBuffer(histogram.length),CLBuffer.Mem.WRITE_ONLY);
+
+        // get a reference to the kernel function with the name 'calc_hist'
+        // and map the buffers to its input parameters.
+        CLKernel kernel = clParams.getKernel("calc_hist");
+        kernel.putArgs(image).putArg(image.height).putArg(histBuffer).putArg(HIST_SIZE);
+
+        // asynchronous write of data to GPU device,
+        // followed by blocking read to get the computed results back.
+        long time = nanoTime();
+        queue.putWriteImage(image, false)
+             .put2DRangeKernel(kernel, 0, 0, image.getWidth(), 0, 0, 0)
+             .putReadBuffer(histBuffer, true);
+        time = nanoTime() - time;
+
+        return histogram;
+    }
+    
+    private static BufferedImage equalizeImage(CLParams clParams, BufferedImage image, CLImageFormat format)
+    {
+    	CLContext context = clParams.getContext();
+    	CLCommandQueue queue = clParams.getQueue();
+    	
+        float[] pixels = image.getRaster().getPixels(0, 0, image.getWidth(), image.getHeight(), (float[])null);
+
+        CLImage2d<FloatBuffer> imageA = context.createImage2d(Buffers.newDirectFloatBuffer(pixels), image.getWidth(), image.getHeight(), format); 
+        CLImage2d<FloatBuffer> imageB = context.createImage2d(Buffers.newDirectFloatBuffer(pixels.length), image.getWidth(), image.getHeight(), format); 
+
+        out.println("used device memory: "
+            + (imageA.getCLSize()+imageB.getCLSize())/1000000 +"MB");
+
+        // get a reference to the kernel function with the name 'calc_hist'
+        // and map the buffers to its input parameters.
+        CLKernel kernel = clParams.getKernel("copy_image");
+        kernel.putArgs(imageA, imageB).putArg(image.getWidth()).putArg(image.getHeight());
+
+        // asynchronous write of data to GPU device,
+        // followed by blocking read to get the computed results back.
+        long time = nanoTime();
+        queue.putWriteImage(imageA, false)
+             .put2DRangeKernel(kernel, 0, 0, image.getWidth(), image.getHeight(), 0, 0)
+        .putReadImage(imageB, true);
+        time = nanoTime() - time;
+        
+        // show resulting image.
+        FloatBuffer bufferB = imageB.getBuffer();
+                    
+        CLBuffer<FloatBuffer> buffer = context.createBuffer(bufferB, CLBuffer.Mem.READ_WRITE);
+        BufferedImage resultImage = createImage(image.getWidth(), image.getHeight(), buffer); 
+
+        out.println("computation took: "+(time/1000000)+"ms");
+        
+        return resultImage;    	
+    }
+    
     private static BufferedImage copyImage(CLParams clParams, BufferedImage image)
     {
     	CLContext context = clParams.getContext();
@@ -104,17 +174,10 @@ public class HECL {
         CLImage2d<FloatBuffer> imageA = context.createImage2d(Buffers.newDirectFloatBuffer(pixels), image.getWidth(), image.getHeight(), format); 
         CLImage2d<FloatBuffer> imageB = context.createImage2d(Buffers.newDirectFloatBuffer(pixels.length), image.getWidth(), image.getHeight(), format); 
 
-        int elementCount = image.getWidth()*image.getHeight();                                  // Length of arrays to process
-        int localWorkSize = clParams.getMaxWorkGroupSize();  			 // Local work size dimensions
-        int globalWorkSize = roundUp(localWorkSize, elementCount);   // rounded up to the nearest multiple of the localWorkSize
-
-        // Array to store the histogram results
-        float[] histogram = new float[HIST_SIZE];
-
         out.println("used device memory: "
             + (imageA.getCLSize()+imageB.getCLSize())/1000000 +"MB");
 
-        // get a reference to the kernel function with the name 'calc_hist'
+        // get a reference to the kernel function with the name 'copy_image'
         // and map the buffers to its input parameters.
         CLKernel kernel = clParams.getKernel("copy_image");
         kernel.putArgs(imageA, imageB).putArg(image.getWidth()).putArg(image.getHeight());
