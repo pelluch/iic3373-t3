@@ -3,9 +3,11 @@ import com.jogamp.opencl.CLBuffer;
 import com.jogamp.opencl.CLCommandQueue;
 import com.jogamp.opencl.CLContext;
 import com.jogamp.opencl.CLDevice;
+import com.jogamp.opencl.CLImage2d;
+import com.jogamp.opencl.CLImageFormat;
+import com.jogamp.opencl.CLImageFormat.*;
 import com.jogamp.opencl.CLKernel;
 import com.jogamp.opencl.CLProgram;
-
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,7 +25,7 @@ import static java.lang.Math.*;
 
 public class HECL {
 
-	private static final int HIST_SIZE = 255;
+	private static final int HIST_SIZE = 256;
 	
     private static void show(final BufferedImage image, final int x, final int y, final String title) {
         SwingUtilities.invokeLater(new Runnable() {
@@ -73,73 +75,43 @@ public class HECL {
             // create command queue on device.
             CLCommandQueue queue = device.createCommandQueue();
 
-            int elementCount = 1444477;                                  // Length of arrays to process
-            int localWorkSize = min(device.getMaxWorkGroupSize(), 256);  // Local work size dimensions
-            int globalWorkSize = roundUp(localWorkSize, elementCount);   // rounded up to the nearest multiple of the localWorkSize
-
-            // load sources, create and build program
-            CLProgram program = context.createProgram(HECL.class.getResourceAsStream("calc_hist.cl")).build();
-
             // load image
             BufferedImage image = readImage("lena.png");
             assert image.getColorModel().getNumComponents() == 3;
             
             float[] pixels = image.getRaster().getPixels(0, 0, image.getWidth(), image.getHeight(), (float[])null);
+            
+            CLImageFormat format = new CLImageFormat(ChannelOrder.RGB, ChannelType.FLOAT);
+            CLImage2d<FloatBuffer> imageA = context.createImage2d(Buffers.newDirectFloatBuffer(pixels), image.getWidth(), image.getHeight(), format); 
+            CLImage2d<FloatBuffer> imageB = context.createImage2d(Buffers.newDirectFloatBuffer(pixels.length), image.getWidth(), image.getHeight(), format); 
+
+            int elementCount = image.getWidth()*image.getHeight();                                  // Length of arrays to process
+            int localWorkSize = device.getMaxWorkGroupSize();  			 // Local work size dimensions
+            int globalWorkSize = roundUp(localWorkSize, elementCount);   // rounded up to the nearest multiple of the localWorkSize
+
             float[] histogram = new float[HIST_SIZE];
-            
-            
-/*            float[][] imageRows = new float[image.getHeight()][];
-            
-            for(int i = 0; i < image.getHeight(); i++)
-                imageRows[i] = image.getRaster().getPixels(0, i, image.getWidth(), 1, (float[])null);
-            
-            float[][] histograms = new float[image.getHeight()][HIST_SIZE];
-            
-            
-            // copy to direct float buffer
-            FloatBuffer fb = Buffers.newDirectFloatBuffer(pixels);
-            
-            */
-            // copy to direct float buffer
-            FloatBuffer fb = Buffers.newDirectFloatBuffer(pixels);
-            
-            // allocate a OpenCL buffer using the direct fb as working copy
-            CLBuffer<FloatBuffer> buffer = context.createBuffer(fb, CLBuffer.Mem.READ_WRITE);
-            
-            // A, B are input buffers, C is for the result
-            CLBuffer<FloatBuffer> clBufferA = context.createFloatBuffer(globalWorkSize, READ_ONLY);
-            CLBuffer<FloatBuffer> clBufferB = context.createFloatBuffer(globalWorkSize, READ_ONLY);
-            CLBuffer<FloatBuffer> clBufferC = context.createFloatBuffer(globalWorkSize, WRITE_ONLY);
+
+            // load sources, create and build program
+            CLProgram program = context.createProgram(HECL.class.getResourceAsStream("calc_hist.cl")).build();
 
             out.println("used device memory: "
-                + (clBufferA.getCLSize()+clBufferB.getCLSize()+clBufferC.getCLSize())/1000000 +"MB");
+                + (imageA.getCLSize()+imageB.getCLSize())/1000000 +"MB");
 
-            // fill input buffers with random numbers
-            // (just to have test data; seed is fixed -> results will not change between runs).
-            //fillBuffer(clBufferA.getBuffer(), 12345);
-            //fillBuffer(clBufferB.getBuffer(), 67890);
-
-            // get a reference to the kernel function with the name 'VectorAdd'
+            // get a reference to the kernel function with the name 'calc_hist'
             // and map the buffers to its input parameters.
-            CLKernel kernel = program.createCLKernel("calc_hist");
-            kernel.putArgs(clBufferA, clBufferB, clBufferC).putArg(elementCount);
+            CLKernel kernel = program.createCLKernel("copy_image");
+            kernel.putArgs(imageA, imageB).putArg(image.getWidth()).putArg(image.getHeight());
 
             // asynchronous write of data to GPU device,
             // followed by blocking read to get the computed results back.
             long time = nanoTime();
-            queue.putWriteBuffer(clBufferA, false)
-                 .putWriteBuffer(clBufferB, false)
-                 .put1DRangeKernel(kernel, 0, globalWorkSize, localWorkSize)
-                 .putReadBuffer(clBufferC, true);
+            queue.putWriteImage(imageA, false)
+                 .putReadImage(imageB, true)
+                 .put2DRangeKernel(kernel, 0, 0, image.getWidth(), image.getHeight(), 0, 0);
             time = nanoTime() - time;
-
-            // print first few elements of the resulting buffer to the console.
-            //out.println("a+b=c results snapshot: ");
-/*            for(int i = 0; i < 10; i++)
-                out.print(clBufferC.getBuffer().get() + ", ");
-            out.println("...; " + clBufferC.getBuffer().remaining() + " more");
-
-            out.println("computation took: "+(time/1000000)+"ms");*/
+            
+            // show resulting image.
+            out.println("computation took: "+(time/1000000)+"ms");
             
         } catch(IOException ioException) {
         	
