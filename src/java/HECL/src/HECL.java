@@ -58,71 +58,26 @@ public class HECL {
     
 	public static void main(String[] args) {
 
-		 // set up (uses default CLPlatform and creates context for all devices)
-        CLContext context = CLContext.create();
-        
-        out.println("created "+context);
-        
-        // always make sure to release the context under all circumstances
-        // not needed for this particular sample but recommented
-        try{
-            // select fastest device
-            CLDevice device = context.getMaxFlopsDevice();
-            out.println("using "+device);
+		CLParams clParams = new CLParams("kernels.cl");
 
-            // create command queue on device.
-            CLCommandQueue queue = device.createCommandQueue();
-
+		try{
+			// Create the CLParams instance for this program:
+			clParams.init();
+        
             // load image
             BufferedImage image = readImage("lena_g_f.png");
-            //assert image.getColorModel().getNumComponents() == 3;
             
-            float[] pixels = image.getRaster().getPixels(0, 0, image.getWidth(), image.getHeight(), (float[])null);
-
-            // We use ChanelOrder.INTENSITY because it's grey
-            CLImageFormat format = new CLImageFormat(ChannelOrder.INTENSITY, ChannelType.FLOAT);
-            CLImage2d<FloatBuffer> imageA = context.createImage2d(Buffers.newDirectFloatBuffer(pixels), image.getWidth(), image.getHeight(), format); 
-            CLImage2d<FloatBuffer> imageB = context.createImage2d(Buffers.newDirectFloatBuffer(pixels.length), image.getWidth(), image.getHeight(), format); 
-
-            int elementCount = image.getWidth()*image.getHeight();                                  // Length of arrays to process
-            int localWorkSize = device.getMaxWorkGroupSize();  			 // Local work size dimensions
-            int globalWorkSize = roundUp(localWorkSize, elementCount);   // rounded up to the nearest multiple of the localWorkSize
-
-            float[] histogram = new float[HIST_SIZE];
-
-            // load sources, create and build program
-            CLProgram program = context.createProgram(HECL.class.getResourceAsStream("calc_hist.cl")).build();
-
-            out.println("used device memory: "
-                + (imageA.getCLSize()+imageB.getCLSize())/1000000 +"MB");
-
-            // get a reference to the kernel function with the name 'calc_hist'
-            // and map the buffers to its input parameters.
-            CLKernel kernel = program.createCLKernel("copy_image");
-            kernel.putArgs(imageA, imageB).putArg(image.getWidth()).putArg(image.getHeight());
-
-            // asynchronous write of data to GPU device,
-            // followed by blocking read to get the computed results back.
-            long time = nanoTime();
-            queue.putWriteImage(imageA, false)
-                 .put2DRangeKernel(kernel, 0, 0, image.getWidth(), image.getHeight(), 0, 0)
-            .putReadImage(imageB, true);
-            time = nanoTime() - time;
+            // Call copyImage:
+            BufferedImage resultImage = copyImage(clParams, image);
+            show(resultImage, image.getWidth()/2, 50, "Resulting Image");
             
-            // show resulting image.
-            FloatBuffer bufferB = imageB.getBuffer();
-                        
-            CLBuffer<FloatBuffer> buffer = context.createBuffer(bufferB, CLBuffer.Mem.READ_WRITE); 
-            show(createImage(image.getWidth(), image.getHeight(), buffer), image.getWidth()/2, 50, "Resulting Image");
-
-            out.println("computation took: "+(time/1000000)+"ms");
-            
-        } catch(IOException ioException) {
+        } 
+		catch(IOException ioException) {
         	
         }
         finally{
             // cleanup all resources associated with this context.
-            context.release();
+            clParams.release();
         }
 		
 
@@ -135,6 +90,52 @@ public class HECL {
         } else {
             return globalSize + groupSize - r;
         }
+    }
+    
+    private static BufferedImage copyImage(CLParams clParams, BufferedImage image)
+    {
+    	CLContext context = clParams.getContext();
+    	CLCommandQueue queue = clParams.getQueue();
+    	
+        float[] pixels = image.getRaster().getPixels(0, 0, image.getWidth(), image.getHeight(), (float[])null);
+
+        // We use ChanelOrder.INTENSITY because it's grey
+        CLImageFormat format = new CLImageFormat(ChannelOrder.INTENSITY, ChannelType.FLOAT);
+        CLImage2d<FloatBuffer> imageA = context.createImage2d(Buffers.newDirectFloatBuffer(pixels), image.getWidth(), image.getHeight(), format); 
+        CLImage2d<FloatBuffer> imageB = context.createImage2d(Buffers.newDirectFloatBuffer(pixels.length), image.getWidth(), image.getHeight(), format); 
+
+        int elementCount = image.getWidth()*image.getHeight();                                  // Length of arrays to process
+        int localWorkSize = clParams.getMaxWorkGroupSize();  			 // Local work size dimensions
+        int globalWorkSize = roundUp(localWorkSize, elementCount);   // rounded up to the nearest multiple of the localWorkSize
+
+        // Array to store the histogram results
+        float[] histogram = new float[HIST_SIZE];
+
+        out.println("used device memory: "
+            + (imageA.getCLSize()+imageB.getCLSize())/1000000 +"MB");
+
+        // get a reference to the kernel function with the name 'calc_hist'
+        // and map the buffers to its input parameters.
+        CLKernel kernel = clParams.getKernel("copy_image");
+        kernel.putArgs(imageA, imageB).putArg(image.getWidth()).putArg(image.getHeight());
+
+        // asynchronous write of data to GPU device,
+        // followed by blocking read to get the computed results back.
+        long time = nanoTime();
+        queue.putWriteImage(imageA, false)
+             .put2DRangeKernel(kernel, 0, 0, image.getWidth(), image.getHeight(), 0, 0)
+        .putReadImage(imageB, true);
+        time = nanoTime() - time;
+        
+        // show resulting image.
+        FloatBuffer bufferB = imageB.getBuffer();
+                    
+        CLBuffer<FloatBuffer> buffer = context.createBuffer(bufferB, CLBuffer.Mem.READ_WRITE);
+        BufferedImage resultImage = createImage(image.getWidth(), image.getHeight(), buffer); 
+
+        out.println("computation took: "+(time/1000000)+"ms");
+        
+        return resultImage;
     }
 
 }

@@ -30,8 +30,24 @@ public class CLParams {
 	private CLCommandQueue queue;
 	private CLDevice device;
 	private Map<String, CLKernel> kernels;
-	public CLParams(String kernelFile)
+	
+	public CLContext getContext(){
+		return context;
+	}
+	
+	public CLCommandQueue getQueue(){
+		return queue;
+	}
+	
+	public int getMaxWorkGroupSize()
 	{
+		if(device != null)
+			return device.getMaxWorkGroupSize();
+		
+		return 0;
+	}
+	
+	public CLParams(String kernelFile){
 		this.kernelFile = kernelFile;
 		this.kernels = new HashMap<String, CLKernel>();
 	}
@@ -56,7 +72,7 @@ public class CLParams {
         kernels = program.createCLKernels();
 	}
 	
-	public void dispose()
+	public void release()
 	{
         context.release();
 	}
