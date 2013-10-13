@@ -81,6 +81,7 @@ public class HECL {
             
             float[] pixels = image.getRaster().getPixels(0, 0, image.getWidth(), image.getHeight(), (float[])null);
 
+            // We use ChanelOrder.INTENSITY because it's grey
             CLImageFormat format = new CLImageFormat(ChannelOrder.INTENSITY, ChannelType.FLOAT);
             CLImage2d<FloatBuffer> imageA = context.createImage2d(Buffers.newDirectFloatBuffer(pixels), image.getWidth(), image.getHeight(), format); 
             CLImage2d<FloatBuffer> imageB = context.createImage2d(Buffers.newDirectFloatBuffer(pixels.length), image.getWidth(), image.getHeight(), format); 
@@ -106,20 +107,18 @@ public class HECL {
             // followed by blocking read to get the computed results back.
             long time = nanoTime();
             queue.putWriteImage(imageA, false)
-                 .putReadImage(imageB, true)
-                 .put2DRangeKernel(kernel, 0, 0, image.getWidth(), image.getHeight(), 0, 0);
+                 .put2DRangeKernel(kernel, 0, 0, image.getWidth(), image.getHeight(), 0, 0)
+            .putReadImage(imageB, true);
             time = nanoTime() - time;
             
             // show resulting image.
-            out.println("computation took: "+(time/1000000)+"ms");
-     /*       int[] intBuffer = new int[pixels.length];
-            for(int i = 0; i < pixels.length; ++i) {
-            	intBuffer[i] = (int)(Math.floor(imageB.getBuffer().get(i)*255.0));          
-            }
-    */
-            FloatBuffer bufferB = imageB.getBuffer(); 
+            FloatBuffer bufferB = imageB.getBuffer();
+            
+            
             CLBuffer<FloatBuffer> buffer = context.createBuffer(bufferB, CLBuffer.Mem.READ_WRITE); 
-            show(createImage(image.getWidth(), image.getHeight(), buffer), 0, 0, "Holi");
+            show(createImage(image.getWidth(), image.getHeight(), buffer), image.getWidth()/2, 50, "Resulting Image");
+
+            out.println("computation took: "+(time/1000000)+"ms");
             
         } catch(IOException ioException) {
         	
