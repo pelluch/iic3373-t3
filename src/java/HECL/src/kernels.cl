@@ -7,15 +7,15 @@
     
     	int x = get_global_id(0); 
         
-    	for(int y = 0; y < imgHeight; i++)
+    	for(int y = 0; y < imgHeight; y++)
     	{
 			int2 coord = (int2)(x,y); 
 			float4 pixel_value = read_imagef(input, sampler, coord);
 			
-			int bin = round(pixel_value.x * (histSize-1));
+			int bin = round(pixel_value.x * (histSize - 1));
 			
 			if(bin < histSize)
-				histogram[bin]++;
+				histogram[bin] = 1;
     	}
     } 
     
