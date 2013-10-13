@@ -53,7 +53,7 @@ public class CLParams {
 	}
 	
 	public CLKernel getKernel(String kernelName) {
-		if(kernels.containsValue(kernelName))
+		if(kernels.containsKey(kernelName))
 			return kernels.get(kernelName);
 		
 		return null;	
@@ -70,6 +70,8 @@ public class CLParams {
         // create program and initialize the kernels Map
         program = context.createProgram(CLParams.class.getResourceAsStream(kernelFile)).build();
         kernels = program.createCLKernels();
+        
+        queue = device.createCommandQueue();
 	}
 	
 	public void release()

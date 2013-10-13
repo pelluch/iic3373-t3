@@ -8,6 +8,7 @@ import com.jogamp.opencl.CLImageFormat;
 import com.jogamp.opencl.CLImageFormat.*;
 
 import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.FloatBuffer;
@@ -21,23 +22,25 @@ import javax.swing.SwingUtilities;
 
 public class Converter {
 
-	public static enum Type { RGB, SPHERICAL, LUV, HSV };
+
 	
-	public static CLImage2d<FloatBuffer> convertTo(CLParams clParams, BufferedImage inputImg, ChannelOrder inputType, ChannelOrder outputType) {
+	public static CLImage2d<FloatBuffer> convertToSpherical(CLParams clParams, BufferedImage inputImage) {
 				
-		int width = inputImg.getWidth();
-		int height = inputImg.getHeight();
+		int width = inputImage.getWidth();
+		int height = inputImage.getHeight();
 		
-		float[] pixels = inputImg.getRaster().getPixels(0, 0, width, height, (float[])null);
-		CLImage2d<FloatBuffer> outputImg = clParams.getContext().createImage2d(
+		float[] pixels = inputImage.getRaster().getPixels(0, 0, width, height, (float[])null);
+		CLImageFormat format = new CLImageFormat(ChannelOrder.RGB, ChannelType.FLOAT);
+		
+		CLImage2d<FloatBuffer> outputImage = clParams.getContext().createImage2d(
 				Buffers.newDirectFloatBuffer(pixels),
 				width,
 				height,
-				format); 
+				format); 		
 		
-        CLImage2d<FloatBuffer> imageB = context.createImage2d(Buffers.newDirectFloatBuffer(pixels.length), image.getWidth(), image.getHeight(), format); 
 		
-        
+		
+		return outputImage;
 		
 	}
 }
