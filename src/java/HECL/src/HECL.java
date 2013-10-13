@@ -49,7 +49,7 @@ public class HECL {
     }
 
     private static BufferedImage createImage(int width, int height, CLBuffer<FloatBuffer> buffer) {
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
         float[] pixels = new float[buffer.getBuffer().capacity()];
         buffer.getBuffer().get(pixels).rewind();
         image.getRaster().setPixels(0, 0, width, height, pixels);
@@ -76,12 +76,12 @@ public class HECL {
             CLCommandQueue queue = device.createCommandQueue();
 
             // load image
-            BufferedImage image = readImage("lena_f.png");
-            assert image.getColorModel().getNumComponents() == 3;
+            BufferedImage image = readImage("lena_g_f.png");
+            //assert image.getColorModel().getNumComponents() == 3;
             
             float[] pixels = image.getRaster().getPixels(0, 0, image.getWidth(), image.getHeight(), (float[])null);
 
-            CLImageFormat format = new CLImageFormat(ChannelOrder.RGB, ChannelType.FLOAT);
+            CLImageFormat format = new CLImageFormat(ChannelOrder.INTENSITY, ChannelType.FLOAT);
             CLImage2d<FloatBuffer> imageA = context.createImage2d(Buffers.newDirectFloatBuffer(pixels), image.getWidth(), image.getHeight(), format); 
             CLImage2d<FloatBuffer> imageB = context.createImage2d(Buffers.newDirectFloatBuffer(pixels.length), image.getWidth(), image.getHeight(), format); 
 
@@ -112,6 +112,14 @@ public class HECL {
             
             // show resulting image.
             out.println("computation took: "+(time/1000000)+"ms");
+     /*       int[] intBuffer = new int[pixels.length];
+            for(int i = 0; i < pixels.length; ++i) {
+            	intBuffer[i] = (int)(Math.floor(imageB.getBuffer().get(i)*255.0));          
+            }
+    */
+            FloatBuffer bufferB = imageB.getBuffer(); 
+            CLBuffer<FloatBuffer> buffer = context.createBuffer(bufferB, CLBuffer.Mem.READ_WRITE); 
+            show(createImage(image.getWidth(), image.getHeight(), buffer), 0, 0, "Holi");
             
         } catch(IOException ioException) {
         	
