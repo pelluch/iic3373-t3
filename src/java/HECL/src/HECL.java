@@ -23,7 +23,7 @@ import static java.lang.Math.*;
 
 public class HECL {
 
-	private static final int HIST_SIZE = 255;
+	private static final int HIST_SIZE = 256;
 	
     private static void show(final BufferedImage image, final int x, final int y, final String title) {
         SwingUtilities.invokeLater(new Runnable() {
@@ -86,8 +86,7 @@ public class HECL {
             
             float[] pixels = image.getRaster().getPixels(0, 0, image.getWidth(), image.getHeight(), (float[])null);
             float[] histogram = new float[HIST_SIZE];
-            
-            
+      
 /*            float[][] imageRows = new float[image.getHeight()][];
             
             for(int i = 0; i < image.getHeight(); i++)
