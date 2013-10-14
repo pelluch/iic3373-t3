@@ -197,40 +197,23 @@ public class HECL {
         // Now, we get the Comulative Distribution Function of the image and create the auxiliar buffers:
     	
         float[] cdf = getNormalizedCDF(histogram, imageA.width, imageA.height);
-        int max = 255, min = 0;
-        /*
-        float[] cdf = getCDF(histogram, imageA.width, imageA.height);
-    	
-    	// We normalize it, searching for the min and max values:
-    	int size = imageA.width * imageA.height;
-    	
-    	int max = 0;
-    	int min = -1;
 
-    	for(int i = 0; i < cdf.length; i++){
-    		if(cdf[i] > 0 && min == -1) min = i;
-    		if(cdf[i] == 1.0) {
-				max = i;
-				break;
-			}
-    	}
-    	*/
         CLImage2d<FloatBuffer> imageB = context.createImage2d(Buffers.newDirectFloatBuffer(pixels.length), image.getWidth(), image.getHeight(), format); 
         CLBuffer<FloatBuffer> cdfBuffer = context.createBuffer(Buffers.newDirectFloatBuffer(cdf), CLBuffer.Mem.READ_ONLY);
 
         out.println("used device memory: "
-            + (imageA.getCLSize()+imageB.getCLSize())/1000000 +"MB");
+            + (imageA.getCLSize()+imageB.getCLSize() + cdfBuffer.getCLSize())/1000000 +"MB");
 
         // Once done that, we call the equalize_image function:
         CLKernel kernel = clParams.getKernel("equalize_image");
-        kernel.putArgs(imageA, imageB).putArg(cdfBuffer).putArg(cdf.length).putArg(min).putArg(max).rewind();
+        kernel.putArgs(imageA, imageB).putArg(cdfBuffer).rewind();
 
         // asynchronous write of data to GPU device,
         // followed by blocking read to get the computed results back.
         long time = nanoTime();
         queue.putWriteImage(imageA, false)
         	 .putWriteBuffer(cdfBuffer, false)
-             .putWriteImage(imageB, true)
+             .putWriteImage(imageB, false)
              .put2DRangeKernel(kernel, 0, 0, image.getWidth(), image.getHeight(), 0, 0)
              .putReadImage(imageB, true);
         time = nanoTime() - time;

@@ -1,4 +1,4 @@
-	kernel void equalize_image(read_only image2d_t input, write_only image2d_t output, global float* cdf, int histSize, int min, int max){
+	kernel void equalize_image(read_only image2d_t input, write_only image2d_t output, global float* cdf){
     	//CLK_FILTER_NEAREST - Parecido a lo de bilinear filtering
     	//CLK_ADDRESS_CLAMP - out-of-range image coordinates will return a border color.
     	const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE|CLK_ADDRESS_CLAMP|CLK_FILTER_NEAREST; 
@@ -9,7 +9,7 @@
         int2 coord = (int2)(x,y); 
         float4 pixel_value = read_imagef(input, sampler, coord);
         
-        float4 eq_pixel_value = (cdf[(int)pixel_value.x]*(max - min) + min, pixel_value.y, pixel_value.z, pixel_value.w);
+        float4 eq_pixel_value = cdf[(int)pixel_value.x];
  		
         write_imagef(output, coord, eq_pixel_value); 
 		
