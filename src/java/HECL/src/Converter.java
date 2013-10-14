@@ -9,43 +9,52 @@ import static java.lang.System.*;
 public class Converter {
 
 
-	
+
 	public static CLBuffer<FloatBuffer> convertToSpherical(CLParams clParams, BufferedImage image) {
-				
+
+		out.println("Transforming image to spherical coords");
 		int width = image.getWidth();
 		int height = image.getHeight();
-		
+
 		float[] pixels = image.getRaster().getPixels(0, 0, width, height, (float[])null);
-		
-		 // copy to direct float buffer
-        FloatBuffer fb = Buffers.newDirectFloatBuffer(pixels);
-        
-        // allocate a OpenCL buffer using the direct fb as working copy
-        CLBuffer<FloatBuffer> buffer = clParams.getContext().createBuffer(fb, CLBuffer.Mem.READ_WRITE);
-        
-        int localWorkSize = clParams.getQueue().getDevice().getMaxWorkGroupSize(); // Local work size dimensions
-        int globalWorkSize = HECL.roundUp(localWorkSize, fb.capacity());  // rounded up to the nearest multiple of the localWorkSize
-        
-        
-        System.out.println("Number of pixels: " + pixels.length);
-        System.out.println("Global work size: " + globalWorkSize);
-        System.out.println("Local work size: " + localWorkSize);
 
-        CLKernel kernel = clParams.getKernel("convert_to_spherical");
-        kernel.putArg(buffer).putArg(image.getWidth()).putArg(image.getHeight()).rewind();
-        
-        long time = nanoTime();
-        clParams.getQueue().putWriteBuffer(buffer, false);
-        clParams.getQueue().put2DRangeKernel(kernel, 0, 0, image.getWidth(), image.getHeight(), 0, 0);
-        clParams.getQueue().putReadBuffer(buffer, true);
-        
-        time = nanoTime() - time;
+		// copy to direct float buffer
+		FloatBuffer fb = Buffers.newDirectFloatBuffer(pixels);
 
-        out.println("computation took: "+(time/1000000)+"ms");
-        return buffer;
-        
-		
+		// allocate a OpenCL buffer using the direct fb as working copy
+		CLBuffer<FloatBuffer> buffer = clParams.getContext().createBuffer(fb, CLBuffer.Mem.READ_WRITE);
+
+		CLKernel kernel = clParams.getKernel("convert_to_spherical");
+		kernel.putArg(buffer).putArg(image.getWidth()).putArg(image.getHeight()).rewind();
+
+		long time = nanoTime();
+		clParams.getQueue().putWriteBuffer(buffer, false);
+		clParams.getQueue().put2DRangeKernel(kernel, 0, 0, image.getWidth(), image.getHeight(), 0, 0);
+		clParams.getQueue().putReadBuffer(buffer, true);
+
+		time = nanoTime() - time;
+
+		out.println("computation took: "+(time/1000000)+"ms");
+		return buffer;
 	}
-	
-	
+
+	public static BufferedImage convertToRGB(CLParams clParams, CLBuffer<FloatBuffer> sphericalImageBuffer, int width, int height) {
+
+		out.println("Transforming image to rgb coords");
+		CLKernel kernel = clParams.getKernel("convert_to_rgb");
+		kernel.putArg(sphericalImageBuffer).putArg(width).putArg(height).rewind();
+
+		long time = nanoTime();
+		clParams.getQueue().putWriteBuffer(sphericalImageBuffer, false);
+		clParams.getQueue().put2DRangeKernel(kernel, 0, 0, width, height, 0, 0);
+		clParams.getQueue().putReadBuffer(sphericalImageBuffer, true);
+
+		out.println("computation took: "+(time/1000000)+"ms");
+
+		BufferedImage rgbImage = ImageUtils.createImage(width, height, sphericalImageBuffer);
+
+		return rgbImage;   
+	}
+
+
 }

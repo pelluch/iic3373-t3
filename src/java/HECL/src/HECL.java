@@ -8,11 +8,15 @@ import com.jogamp.opencl.CLImageFormat;
 import com.jogamp.opencl.CLImageFormat.*;
 import com.jogamp.opencl.CLKernel;
 import com.jogamp.opencl.CLProgram;
+
 import java.awt.image.BufferedImage;
+import java.io.Console;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.InputMismatchException;
+import java.util.Scanner;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
@@ -28,45 +32,14 @@ public class HECL {
 
 	private static final int HIST_SIZE = 256;
 	
-    private static void show(final BufferedImage image, final int x, final int y, final String title) {
-        SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                JFrame frame = new JFrame("gamma correction example ["+title+"]");
-                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                frame.add(new JLabel(new ImageIcon(image)));
-                frame.pack();
-                frame.setLocation(x, y);
-                frame.setVisible(true);
-            }
-        });
-    }
     
-    private static InputStream getStreamFor(String filename) {
-        return HECL.class.getResourceAsStream(filename);
-    }
-    
-    public static BufferedImage readImage(String filename) throws IOException {
-        return ImageIO.read(getStreamFor(filename));
-    }
-
-    private static BufferedImage createImage(int width, int height, CLBuffer<FloatBuffer> buffer) {
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        float[] pixels = new float[buffer.getBuffer().capacity()];
-        buffer.getBuffer().get(pixels).rewind();
-        image.getRaster().setPixels(0, 0, width, height, pixels);
-        return image;
-    }
-    
-	public static void main(String[] args) {
-
-		CLParams clParams = new CLParams("kernels.cl");
+	private static CLParams clParams = null;
+	
+    public static CLBuffer<FloatBuffer> testRgbToSpherical() {
 
 		try{
-			// Create the CLParams instance for this program:
-			clParams.init();
-        
             // load image
-            BufferedImage image = readImage("lena_f.png");
+            BufferedImage image = ImageUtils.readImage("lena_f.png");
             
             // Call copyImage:
 
@@ -77,19 +50,87 @@ public class HECL {
             	System.out.print(pixels[i] + " ");
             }
             System.out.println();
+            return resultImage;
             //show(resultImage, image.getWidth()/2, 50, "Resulting Image");
             
         } 
 		catch(IOException ioException) {
-        	
+        	System.out.println("Error reading rgb image");
         }
-        finally{
-            // cleanup all resources associated with this context.
-            clParams.release();
-        }
+		return null;
+    	
+    }
+    
+    public static void testSphericalToRgb(CLBuffer<FloatBuffer> sphericalImageBuffer) {
+    	BufferedImage image = null;
+		try {
+			image = ImageUtils.readImage("lena_f.png");
+		} catch (IOException e) {
+			System.out.println("Invalid image file.");
+		}
+    	Converter.convertToRGB(clParams, sphericalImageBuffer, image.getWidth(), image.getHeight()); 	
+    }
+    
+    
+    public static boolean Menu() {
+    	
+    	@SuppressWarnings("resource")
+		Scanner reader = new Scanner(System.in);
+    	System.out.println("Choose an option:\n" + 
+    					   "1. Test RGB to Spherical\n" + 
+    					   "2. Test Spherical to RGB\n" + 
+    					   "3. Exit");
+    	boolean exit = false;
+    	try {
+    		if(reader.hasNext()) {
+    			int choice = reader.nextInt();
+    			if(choice < 0 || choice > 3) return false;
+        		
+        		switch(choice) {
+        		case 1:
+        			testRgbToSpherical();  		
+        			break;
+        		case 2:
+        			testSphericalToRgb(testRgbToSpherical());
+        			break;
+        		case 3:
+        			exit = true;
+        			break;
+        		}
+    		}
+    		else {
+    			return false;
+    		}
+    		
+    	}    	
+    	catch(InputMismatchException ioException) {
+    		System.out.println("Invalid, must enter a number.");
+    		return false;
+    	}
+    	finally {
+    		if(exit && clParams != null) {
+    			clParams.release();
+    			clParams = null;
+    		}
+    	}
+    	return exit;    	
+    }
+    
+	public static void main(String[] args) {
 		
-
+		clParams = new CLParams("kernels.cl");
+		try {
+			clParams.init();
+		} catch (IOException e) {
+			System.out.println("Kernels file not found");
+			e.printStackTrace();
+		}
+		boolean exit = false;
+		while(!exit) {
+			exit = Menu();
+		}
 	}
+	
 	
     public static int roundUp(int groupSize, int globalSize) {
         int r = globalSize % groupSize;
@@ -159,7 +200,7 @@ public class HECL {
         FloatBuffer bufferB = imageB.getBuffer();
                     
         CLBuffer<FloatBuffer> buffer = context.createBuffer(bufferB, CLBuffer.Mem.READ_WRITE);
-        BufferedImage resultImage = createImage(image.getWidth(), image.getHeight(), buffer); 
+        BufferedImage resultImage = ImageUtils.createImage(image.getWidth(), image.getHeight(), buffer); 
 
     //    out.println("computation took: "+(time/1000000)+"ms");
         
@@ -198,7 +239,7 @@ public class HECL {
         FloatBuffer bufferB = imageB.getBuffer();
                     
         CLBuffer<FloatBuffer> buffer = context.createBuffer(bufferB, CLBuffer.Mem.READ_WRITE);
-        BufferedImage resultImage = createImage(image.getWidth(), image.getHeight(), buffer); 
+        BufferedImage resultImage = ImageUtils.createImage(image.getWidth(), image.getHeight(), buffer); 
 
         out.println("computation took: "+(time/1000000)+"ms");
         

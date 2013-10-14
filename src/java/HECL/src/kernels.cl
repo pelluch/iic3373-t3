@@ -28,18 +28,42 @@
         //int color = get_global_id(2); 
         int idx = x*height*3 + y*3;
         
-        float R = image[idx];
-        float G = image[idx + 1];
-        float B = image[idx + 2];
+        float R = image[idx]/255.0f;
+        float G = image[idx + 1]/255.0f;
+        float B = image[idx + 2]/255.0f;
         
         float r = sqrt(pow(R, 2.0f) + pow(G, 2.0f) + pow(B, 2.0f));
-        float theta = B/r;
-        float phi = G/R;
+        float theta = acos(B/r);
+        float phi = atan2(G, R);
         
        image[idx] = r;
        image[idx + 1] = theta;
        image[idx + 2] = phi;
+       
     } 
+    
+    
+    kernel void convert_to_rgb(global float * image, const int width, const int height ) {
+    	
+    	//CLK_FILTER_NEAREST - Parecido a lo de bilinear filtering
+    	//CLK_ADDRESS_CLAMP - out-of-range image coordinates will return a border color.
+        int x = get_global_id(0); 
+        int y = get_global_id(1); 
+        //int color = get_global_id(2); 
+        int idx = x*height*3 + y*3;
+        
+        float r = image[idx];
+        float theta = image[idx + 1];
+        float phi = image[idx + 2];
+        
+        float R = r*sin(theta)*cos(phi);
+        float G = r*sin(theta)*sin(phi);
+        float B = r*cos(theta);
+        
+       image[idx] = R;
+       image[idx + 1] = G;
+       image[idx + 2] = B;
+    }    
     
     
     kernel void copy_image(read_only image2d_t input, write_only image2d_t output, const int width, const int height) {
