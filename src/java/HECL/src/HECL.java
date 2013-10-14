@@ -35,7 +35,7 @@ public class HECL {
     
 	private static CLParams clParams = null;
 	
-    public static CLBuffer<FloatBuffer> testRgbToSpherical() {
+    public static float[] testRgbToSpherical() {
 
 		try{
             // load image
@@ -50,7 +50,7 @@ public class HECL {
             	System.out.print(pixels[i] + " ");
             }
             System.out.println();
-            return resultImage;
+            return pixels;
             //show(resultImage, image.getWidth()/2, 50, "Resulting Image");
             
         } 
@@ -61,14 +61,15 @@ public class HECL {
     	
     }
     
-    public static void testSphericalToRgb(CLBuffer<FloatBuffer> sphericalImageBuffer) {
+    public static void testSphericalToRgb(float[] sphericalImageFloats) {
     	BufferedImage image = null;
 		try {
 			image = ImageUtils.readImage("lena_f.png");
 		} catch (IOException e) {
 			System.out.println("Invalid image file.");
 		}
-    	Converter.convertToRGB(clParams, sphericalImageBuffer, image.getWidth(), image.getHeight()); 	
+    	BufferedImage rgbImage = Converter.convertToRGB(clParams, sphericalImageFloats, image.getWidth(), image.getHeight());        
+    	ImageUtils.show(rgbImage, 0, 0, "RGB Image");
     }
     
     

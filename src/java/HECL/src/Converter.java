@@ -1,6 +1,7 @@
 import com.jogamp.common.nio.Buffers;
 import com.jogamp.opencl.CLBuffer;
 import com.jogamp.opencl.CLKernel;
+
 import java.awt.image.BufferedImage;
 import java.nio.FloatBuffer;
 
@@ -38,8 +39,11 @@ public class Converter {
 		return buffer;
 	}
 
-	public static BufferedImage convertToRGB(CLParams clParams, CLBuffer<FloatBuffer> sphericalImageBuffer, int width, int height) {
+	public static BufferedImage convertToRGB(CLParams clParams, float[] sphericalImageFloats, int width, int height) {
 
+		FloatBuffer fb = Buffers.newDirectFloatBuffer(sphericalImageFloats);
+		CLBuffer<FloatBuffer> sphericalImageBuffer = clParams.getContext().createBuffer(fb, CLBuffer.Mem.READ_WRITE);
+        
 		out.println("Transforming image to rgb coords");
 		CLKernel kernel = clParams.getKernel("convert_to_rgb");
 		kernel.putArg(sphericalImageBuffer).putArg(width).putArg(height).rewind();
@@ -48,7 +52,7 @@ public class Converter {
 		clParams.getQueue().putWriteBuffer(sphericalImageBuffer, false);
 		clParams.getQueue().put2DRangeKernel(kernel, 0, 0, width, height, 0, 0);
 		clParams.getQueue().putReadBuffer(sphericalImageBuffer, true);
-
+		time = nanoTime() - time;
 		out.println("computation took: "+(time/1000000)+"ms");
 
 		BufferedImage rgbImage = ImageUtils.createImage(width, height, sphericalImageBuffer);

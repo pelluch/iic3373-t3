@@ -56,9 +56,9 @@
         float theta = image[idx + 1];
         float phi = image[idx + 2];
         
-        float R = r*sin(theta)*cos(phi);
-        float G = r*sin(theta)*sin(phi);
-        float B = r*cos(theta);
+        float R = r*sin(theta)*cos(phi)*255.0;
+        float G = r*sin(theta)*sin(phi)*255.0;
+        float B = r*cos(theta)*255.0;
         
        image[idx] = R;
        image[idx + 1] = G;
