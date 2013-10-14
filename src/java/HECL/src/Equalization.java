@@ -148,6 +148,10 @@ public class Equalization {
         // Now, we get the Comulative Distribution Function of the image and create the auxiliar buffers:
     	
         float[] cdf = getNormalizedCDF(histogram, image.getWidth(), image.getHeight());
+        
+        // creamos una dummy cdf:
+        //for(int i = 0; i < cdf.length; i++)
+        //	cdf[i] = i;
 
         CLBuffer<FloatBuffer> imageB = context.createBuffer(Buffers.newDirectFloatBuffer(imageLength), CLBuffer.Mem.WRITE_ONLY); 
         CLBuffer<FloatBuffer> cdfBuffer = context.createBuffer(Buffers.newDirectFloatBuffer(cdf), CLBuffer.Mem.READ_ONLY);
@@ -173,6 +177,8 @@ public class Equalization {
                     
         CLBuffer<FloatBuffer> buffer = context.createBuffer(bufferB, CLBuffer.Mem.READ_WRITE);
         float[] sphericalImageFloats = new float[imageLength];
+        buffer.getBuffer().get(sphericalImageFloats);
+        
         BufferedImage resultImage = Converter.convertToRGB(clParams, sphericalImageFloats,image.getWidth(), image.getHeight());
 
         out.println("computation took: "+(time/1000000)+"ms");

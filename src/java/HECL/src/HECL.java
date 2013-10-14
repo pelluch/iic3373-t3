@@ -86,7 +86,7 @@ public class HECL {
 
 
 	private static void testColorEqualization() {
-		BufferedImage image = ImageUtils.readImage("lena_f.png");
+		BufferedImage image = ImageUtils.readImage("rgb_uneq.jpg");
 		ImageUtils.show(image, 0, 0, "Original Image");
 		
 		// Get equalized Image:		
@@ -97,7 +97,7 @@ public class HECL {
 	}
 
 	private static void testGreyEqualization() {
-		BufferedImage image = ImageUtils.readImage("uneq.jpg");
+		BufferedImage image = ImageUtils.readImage("lena_g_f.png");
 		ImageUtils.show(image, 0, 0, "Original Image");
 		
 		// Get equalized Image:
