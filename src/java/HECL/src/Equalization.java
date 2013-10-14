@@ -164,7 +164,6 @@ public class Equalization {
         long time = nanoTime();
         queue.putWriteBuffer(imageA, false)
         	 .putWriteBuffer(cdfBuffer, false)
-             .putWriteBuffer(imageB, false)
              .put2DRangeKernel(kernel, 0, 0, image.getWidth(), image.getHeight(), 0, 0)
              .putReadBuffer(imageB, true);
         time = nanoTime() - time;

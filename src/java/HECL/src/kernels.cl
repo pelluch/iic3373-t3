@@ -48,11 +48,13 @@
 		int y = get_global_id(1);
 		
         int coord = 3*(y * imgWidth + x);
-        int pixel_value = round(input[coord]*(histSize - 1));
+        int pixel_value = input[coord];
         
         int eq_pixel_value = cdf[pixel_value];
  		
         output[coord] = eq_pixel_value;
+        output[coord + 1] = input[coord + 1];
+        output[coord + 2] = input[coord + 2];
 	}
 
     kernel void calc_colHist_buffer(global float* input, int imgWidth, int imgHeight, global int* histogram, int histSize) {
@@ -82,11 +84,11 @@
         float G = image[idx + 1]/255.0f;
         float B = image[idx + 2]/255.0f;
         
-        float r = round(sqrt(pow(R, 2.0f) + pow(G, 2.0f) + pow(B, 2.0f))*255.0f);
+        float r = (sqrt(pow(R, 2.0f) + pow(G, 2.0f) + pow(B, 2.0f)));
         float theta = acos(B/r);
         float phi = atan2(G, R);
         
-       image[idx] = r;
+       image[idx] = round(r * 255.0f);
        image[idx + 1] = theta;
        image[idx + 2] = phi;
     } 
@@ -100,7 +102,7 @@
         int idx = 3*(y * width + x);
         //int idx = x*height*3 + y*3;
         
-        float r = image[idx];
+        float r = image[idx]/255.0f;
         float theta = image[idx + 1];
         float phi = image[idx + 2];
         
@@ -108,9 +110,9 @@
         float G = r*sin(theta)*sin(phi)*255.0;
         float B = r*cos(theta)*255.0;
         
-       image[idx] = R;
-       image[idx + 1] = G;
-       image[idx + 2] = B;
+        image[idx] = R;
+        image[idx + 1] = G;
+        image[idx + 2] = B;
     }    
     
     
