@@ -14,8 +14,10 @@ import com.jogamp.opencl.CLBuffer;
 
 public class ImageUtils {
 
-    public static BufferedImage createImage(int width, int height, CLBuffer<FloatBuffer> buffer) {
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+    public static BufferedImage createImage(int width, int height, CLBuffer<FloatBuffer> buffer, int imageType) {
+    	if(!(imageType == BufferedImage.TYPE_INT_RGB || imageType == BufferedImage.TYPE_BYTE_GRAY))
+    		return null;
+        BufferedImage image = new BufferedImage(width, height, imageType);
         float[] pixels = new float[buffer.getBuffer().capacity()];
         buffer.getBuffer().get(pixels).rewind();
         image.getRaster().setPixels(0, 0, width, height, pixels);
@@ -40,7 +42,7 @@ public class ImageUtils {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 JFrame frame = new JFrame("gamma correction example ["+title+"]");
-                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
                 frame.add(new JLabel(new ImageIcon(image)));
                 frame.pack();
                 frame.setLocation(x, y);

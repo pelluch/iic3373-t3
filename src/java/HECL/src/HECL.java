@@ -78,12 +78,37 @@ public class HECL {
 		FloatBuffer bufferB = imageB.getBuffer();
 
 		CLBuffer<FloatBuffer> buffer = context.createBuffer(bufferB, CLBuffer.Mem.READ_WRITE);
-		BufferedImage resultImage = ImageUtils.createImage(image.getWidth(), image.getHeight(), buffer); 
+		BufferedImage resultImage = ImageUtils.createImage(image.getWidth(), image.getHeight(), buffer, BufferedImage.TYPE_INT_RGB); 
 		ImageUtils.show(resultImage, 0, 0, "Image copy");
 		out.println("computation took: "+(time/1000000)+"ms");
 
 	}
 
+
+	private static void testColorEqualization() {
+		BufferedImage image = ImageUtils.readImage("lena_f.png");
+		ImageUtils.show(image, 0, 0, "Original Image");
+		
+		// Get equalized Image:		
+		image = Equalization.equalizeBufferImage(clParams, image);
+		
+		// Print results:
+		ImageUtils.show(image, 0, 0, "Equalized Image");		
+	}
+
+	private static void testGreyEqualization() {
+		BufferedImage image = ImageUtils.readImage("uneq.jpg");
+		ImageUtils.show(image, 0, 0, "Original Image");
+		
+		// Get equalized Image:
+		CLImageFormat format = new CLImageFormat(ChannelOrder.INTENSITY, ChannelType.FLOAT);
+		image = Equalization.equalizeImage(clParams, image, format);
+		
+		// Print results:
+		ImageUtils.show(image, 0, 0, "Equalized Image");		
+	}
+
+	
 	public static boolean Menu() {
 
 		@SuppressWarnings("resource")
@@ -92,12 +117,14 @@ public class HECL {
 				"1. Test RGB to Spherical\n" + 
 				"2. Test Spherical to RGB\n" + 
 				"3. Test Copy image\n" + 
-				"4. Exit");
+				"4. Test Grey Equalization\n" +
+				"5. Test Color Equalization\n" +
+				"6. Exit");
 		boolean exit = false;
 		try {
 			if(reader.hasNext()) {
 				int choice = reader.nextInt();
-				if(choice < 0 || choice > 4) return false;
+				if(choice < 0 || choice > 6) return false;
 
 				switch(choice) {
 				case 1:
@@ -110,6 +137,12 @@ public class HECL {
 					testCopyImage();
 					break;
 				case 4:
+					testGreyEqualization();
+					break;
+				case 5:
+					testColorEqualization();
+					break;
+				case 6:
 					exit = true;
 					break;
 				}
@@ -145,6 +178,7 @@ public class HECL {
 		while(!exit) {
 			exit = Menu();
 		}
+		System.exit(0);
 	}
 
 

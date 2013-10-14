@@ -1,19 +1,3 @@
-	kernel void equalize_image_buffer(global float* input, global float* output, global float* cdf, int imgWidth, int imgHeight){
-    	//CLK_FILTER_NEAREST - Parecido a lo de bilinear filtering
-    	//CLK_ADDRESS_CLAMP - out-of-range image coordinates will return a border color.
-    	const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE|CLK_ADDRESS_CLAMP|CLK_FILTER_NEAREST; 
-
-    	int x = get_global_id(0);
-		int y = get_global_id(1);
-		
-        int coord = y * imgWidth + x;
-        float4 pixel_value = input[coord];
-        
-        float4 eq_pixel_value = cdf[(int)pixel_value.x];
- 		
-        output[coord] = eq_pixel_value;
-	}
-
 	kernel void equalize_image(read_only image2d_t input, write_only image2d_t output, global float* cdf){
     	//CLK_FILTER_NEAREST - Parecido a lo de bilinear filtering
     	//CLK_ADDRESS_CLAMP - out-of-range image coordinates will return a border color.
@@ -58,20 +42,28 @@
     	}
     } 
     
+	kernel void equalize_image_buffer(global float* input, global float* output, global float* cdf, int imgWidth, int imgHeight, int histSize){
+
+    	int x = get_global_id(0);
+		int y = get_global_id(1);
+		
+        int coord = 3*(y * imgWidth + x);
+        int pixel_value = round(input[coord]*(histSize - 1));
+        
+        int eq_pixel_value = cdf[pixel_value];
+ 		
+        output[coord] = eq_pixel_value;
+	}
+
     kernel void calc_colHist_buffer(global float* input, int imgWidth, int imgHeight, global int* histogram, int histSize) {
-    	
-    	//CLK_FILTER_NEAREST - Parecido a lo de bilinear filtering
-    	//CLK_ADDRESS_CLAMP - out-of-range image coordinates will return a border color.
-    	const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE|CLK_ADDRESS_CLAMP|CLK_FILTER_NEAREST; 
     
     	int column = get_global_id(0); 
     	
     	for(int y = 0; y < imgHeight; y++)
     	{
-            int coord = y * imgWidth + x;
-            float4 pixel_value = input[coord];
-			
-			int bin = round(pixel_value.x);
+            int coord = 3*(y * imgWidth + column);
+            
+            int bin = round(input[coord]);
 			
 			if(bin < histSize)
 				histogram[column*histSize + bin]++;
@@ -80,18 +72,17 @@
 
     kernel void convert_to_spherical(global float * image, const int width, const int height ) {
     	
-    	//CLK_FILTER_NEAREST - Parecido a lo de bilinear filtering
-    	//CLK_ADDRESS_CLAMP - out-of-range image coordinates will return a border color.
         int x = get_global_id(0); 
         int y = get_global_id(1); 
-        //int color = get_global_id(2); 
-        int idx = x*height*3 + y*3;
+        
+        int idx = 3*(y * width + x);
+        //int idx = x*height*3 + y*3;
         
         float R = image[idx]/255.0f;
         float G = image[idx + 1]/255.0f;
         float B = image[idx + 2]/255.0f;
         
-        float r = sqrt(pow(R, 2.0f) + pow(G, 2.0f) + pow(B, 2.0f));
+        float r = round(sqrt(pow(R, 2.0f) + pow(G, 2.0f) + pow(B, 2.0f))*255.0f);
         float theta = acos(B/r);
         float phi = atan2(G, R);
         
@@ -103,12 +94,11 @@
     
     kernel void convert_to_rgb(global float * image, const int width, const int height ) {
     	
-    	//CLK_FILTER_NEAREST - Parecido a lo de bilinear filtering
-    	//CLK_ADDRESS_CLAMP - out-of-range image coordinates will return a border color.
         int x = get_global_id(0); 
         int y = get_global_id(1); 
-        //int color = get_global_id(2); 
-        int idx = x*height*3 + y*3;
+
+        int idx = 3*(y * width + x);
+        //int idx = x*height*3 + y*3;
         
         float r = image[idx];
         float theta = image[idx + 1];
