@@ -68,9 +68,14 @@ public class HECL {
             BufferedImage image = readImage("lena_f.png");
             
             // Call copyImage:
-            BufferedImage resultImage = copyImage(clParams, image);
-            float[] pixels = resultImage.getRaster().getPixels(0, 0, resultImage.getWidth(), resultImage.getHeight(), (float[])null);
-            show(resultImage, image.getWidth()/2, 50, "Resulting Image");
+            CLBuffer<FloatBuffer> resultImage = Converter.convertToSpherical(clParams, image);
+            float[] pixels = new float[image.getData().getDataBuffer().getSize()];
+            resultImage.getBuffer().get(pixels, 0, pixels.length);
+            for(int i = 0; i < 100; ++i) {
+            	System.out.print(pixels[i] + " ");
+            }
+            System.out.println();
+            //show(resultImage, image.getWidth()/2, 50, "Resulting Image");
             
         } 
 		catch(IOException ioException) {
