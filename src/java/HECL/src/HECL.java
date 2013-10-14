@@ -69,14 +69,14 @@ public class HECL {
             BufferedImage image = readImage("lena_g_f.png");
             
             // Call copyImage:
-            BufferedImage resultImage = copyImage(clParams, image);
+            //BufferedImage resultImage = copyImage(clParams, image);
             
             // Equalize Image:
             CLImageFormat format = new CLImageFormat(ChannelOrder.INTENSITY, ChannelType.FLOAT); // We use ChanelOrder.INTENSITY because it's grey
  
-            resultImage = equalizeImage(clParams, resultImage, format);
+            image = equalizeImage(clParams, image, format);
             
-            show(resultImage, image.getWidth()/2, 50, "Resulting Image");
+            //show(image, image.getWidth()/2, 50, "Resulting Image");
             
         } 
 		catch(IOException ioException) {
@@ -106,8 +106,9 @@ public class HECL {
         
     	// Array to store the histogram results
         int[] histogram = new int[HIST_SIZE];
+        histogram[0] = 30;
         
-        CLBuffer<IntBuffer> histBuffer =  context.createBuffer(Buffers.newDirectIntBuffer(histogram),CLBuffer.Mem.READ_WRITE);
+        CLBuffer<IntBuffer> histBuffer =  context.createBuffer(Buffers.newDirectIntBuffer(histogram),CLBuffer.Mem.WRITE_ONLY);
 
         // get a reference to the kernel function with the name 'calc_hist'
         // and map the buffers to its input parameters.
@@ -118,10 +119,13 @@ public class HECL {
         // followed by blocking read to get the computed results back.
         long time = nanoTime();
         queue.putWriteImage(image, false)
+             .putWriteBuffer(histBuffer, false)
              .put2DRangeKernel(kernel, 0, 0, image.getWidth(), 1, 0, 0)
              .putReadBuffer(histBuffer, true);
         time = nanoTime() - time;
-
+        
+        histBuffer.getBuffer().get(histogram);        
+        
         return histogram;
     }
     
