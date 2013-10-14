@@ -97,7 +97,7 @@ public class HECL {
 		try {
 			if(reader.hasNext()) {
 				int choice = reader.nextInt();
-				if(choice < 0 || choice > 3) return false;
+				if(choice < 0 || choice > 4) return false;
 
 				switch(choice) {
 				case 1:
