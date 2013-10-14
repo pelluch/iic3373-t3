@@ -26,8 +26,13 @@ public class ImageUtils {
         return HECL.class.getResourceAsStream(filename);
     }
     
-    public static BufferedImage readImage(String filename) throws IOException {
-        return ImageIO.read(getStreamFor(filename));
+    public static BufferedImage readImage(String filename) {
+        try {
+			return ImageIO.read(getStreamFor(filename));
+		} catch (IOException e) {
+			System.out.println("Error loading " + filename);
+			return null;
+		}
     }
 
     

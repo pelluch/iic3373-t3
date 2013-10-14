@@ -1,27 +1,13 @@
-import com.jogamp.common.nio.Buffers;
-import com.jogamp.opencl.CLBuffer;
+
 import com.jogamp.opencl.CLCommandQueue;
 import com.jogamp.opencl.CLContext;
 import com.jogamp.opencl.CLDevice;
-import com.jogamp.opencl.CLImage2d;
-import com.jogamp.opencl.CLImageFormat;
-import com.jogamp.opencl.CLImageFormat.*;
 import com.jogamp.opencl.CLKernel;
 import com.jogamp.opencl.CLProgram;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.FloatBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.imageio.ImageIO;
-import javax.swing.ImageIcon;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.SwingUtilities;
-
-import static java.lang.System.*;
 
 public class CLParams {
 	private String kernelFile;
