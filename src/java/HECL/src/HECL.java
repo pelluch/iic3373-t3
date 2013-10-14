@@ -84,6 +84,11 @@ public class HECL {
 
 	}
 
+	public static void testVideo() {
+		Video inputVideo = new Video("input/short.mp4");
+		inputVideo.processVideo(25);
+	}
+	
 	public static boolean Menu() {
 
 		@SuppressWarnings("resource")
@@ -92,12 +97,13 @@ public class HECL {
 				"1. Test RGB to Spherical\n" + 
 				"2. Test Spherical to RGB\n" + 
 				"3. Test Copy image\n" + 
-				"4. Exit");
+				"4. Test Video processing\n" + 
+				"5. Exit");
 		boolean exit = false;
 		try {
 			if(reader.hasNext()) {
 				int choice = reader.nextInt();
-				if(choice < 0 || choice > 3) return false;
+				if(choice < 0 || choice > 5) return false;
 
 				switch(choice) {
 				case 1:
@@ -110,6 +116,9 @@ public class HECL {
 					testCopyImage();
 					break;
 				case 4:
+					testVideo();
+					break;
+				case 5:
 					exit = true;
 					break;
 				}

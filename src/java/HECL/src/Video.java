@@ -1,5 +1,6 @@
 import java.io.File;
 import java.io.IOException;
+import java.lang.ProcessBuilder.Redirect;
 
 
 public class Video {
@@ -39,8 +40,8 @@ public class Video {
 		
 		int nChannels = 2;
 		String audioFormat = "mp3";		
-		String command = "ffmpeg -i " + videoFilePath + " -vn " + 
-				"-ac " + nChannels + "-f " + audioFormat + 
+		String command = "/usr/bin/ffmpeg -y -i " + videoFilePath + " -vn " + 
+				"-ac " + nChannels + " -f " + audioFormat + 
 				" " + videoFileName + "." + audioFormat;
 		return command;
 	}
@@ -56,8 +57,17 @@ public class Video {
 		try {
 			
 			//First we extract sound
-			Process process = new ProcessBuilder(audioCommand).start();
-					
+			ProcessBuilder audioBuilder = new ProcessBuilder(audioCommand.split(" "));
+			audioBuilder.redirectOutput(Redirect.INHERIT);
+			audioBuilder.redirectError(Redirect.INHERIT);
+			audioBuilder.redirectInput(Redirect.INHERIT);
+			Process process = audioBuilder.start();	
+			try {
+				int exitValue = process.waitFor();
+				if(exitValue != 0) return false;
+			} catch (InterruptedException e) {
+				System.out.println("Thread interrutped while waiting for audio extraction");
+			}
 			
 		} catch (IOException e) {
 			System.out.println("Error executing command");
