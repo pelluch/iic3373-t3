@@ -1,3 +1,20 @@
+	kernel void equalize_image(read_only image2d_t input, write_only image2d_t output, global float* cdf, int histSize, int min, int max){
+    	//CLK_FILTER_NEAREST - Parecido a lo de bilinear filtering
+    	//CLK_ADDRESS_CLAMP - out-of-range image coordinates will return a border color.
+    	const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE|CLK_ADDRESS_CLAMP|CLK_FILTER_NEAREST; 
+
+    	int x = get_global_id(0);
+		int y = get_global_id(1);
+		
+        int2 coord = (int2)(x,y); 
+        float4 pixel_value = read_imagef(input, sampler, coord);
+        
+        float4 eq_pixel_value = (cdf[(int)pixel_value.x]*(max - min) + min, pixel_value.y, pixel_value.z, pixel_value.w);
+ 		
+        write_imagef(output, coord, eq_pixel_value); 
+		
+	}
+
 	kernel void merge_colHist(global int* colHistograms, global int* histogram, int colCount, int histSize){
 		// There's one thread per histogram entry:
 		int x = get_global_id(0);

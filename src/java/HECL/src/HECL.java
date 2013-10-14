@@ -66,17 +66,20 @@ public class HECL {
 			clParams.init();
         
             // load image
-            BufferedImage image = readImage("lena_g_f.png");
+            //BufferedImage image = readImage("lena_g_f.png");
+            BufferedImage image = readImage("uneq.jpg");
             
             // Call copyImage:
             //BufferedImage resultImage = copyImage(clParams, image);
             
+            show(image, image.getWidth()/2, 50, "Original Image");
+
             // Equalize Image:
             CLImageFormat format = new CLImageFormat(ChannelOrder.INTENSITY, ChannelType.FLOAT); // We use ChanelOrder.INTENSITY because it's grey
  
             image = equalizeImage(clParams, image, format);
             
-            //show(image, image.getWidth()/2, 50, "Resulting Image");
+            show(image, image.getWidth()/2, 50, "Resulting Image");
             
         } 
 		catch(IOException ioException) {
@@ -133,7 +136,8 @@ public class HECL {
         time = nanoTime() - time;
         
         histBuffer.getBuffer().get(histogram);        
-        
+
+        //Check if the count of ocurrencies is the same as the number of pixels:
         int count = 0;
         for(int i = 0; i < HIST_SIZE; i++)
         	count += histogram[i];
@@ -141,6 +145,41 @@ public class HECL {
         System.out.println(count + "=" + (image.width*image.height));
         
         return histogram;
+    }
+
+    private static float[] getCDF(int[] histogram, int imgWidth, int imgHeight)
+    {
+    	float[] cdf = new float[histogram.length];
+    	int size = imgWidth * imgHeight;
+    	
+    	cdf[0] = histogram[0]/size;
+    	
+    	for(int i = 1; i < histogram.length; i++){
+    		cdf[i] = (cdf[i - 1]*size + histogram[i])/size;
+    	}
+    	return cdf;
+    }
+
+    private static float[] getNormalizedCDF(int[] histogram, int imgWidth, int imgHeight)
+    {
+    	int cdf_min = histogram[0];
+    	
+    	float[] cdf = new float[histogram.length];
+    	int size = imgWidth * imgHeight;
+    	
+    	cdf[0] = histogram[0];
+    	
+    	for(int i = 1; i < histogram.length; i++){
+    		if(histogram[i] > 0 && cdf_min == 0)
+    			cdf_min = histogram[i];
+    		cdf[i] = cdf[i - 1] + histogram[i];
+    	}
+    	
+    	// Normalizamos:
+    	for(int i = 0; i < histogram.length; i++)
+    		cdf[i] = Math.round((cdf[i] - cdf_min)/(imgWidth * imgHeight - cdf_min) * (histogram.length - 1));
+
+    	return cdf;
     }
     
     private static BufferedImage equalizeImage(CLParams clParams, BufferedImage image, CLImageFormat format)
@@ -152,33 +191,57 @@ public class HECL {
 
         CLImage2d<FloatBuffer> imageA = context.createImage2d(Buffers.newDirectFloatBuffer(pixels), image.getWidth(), image.getHeight(), format); 
 
+        // Get the histogram of the image:
         int[] histogram = getHistogram(clParams, imageA);
         
+        // Now, we get the Comulative Distribution Function of the image and create the auxiliar buffers:
+    	
+        float[] cdf = getNormalizedCDF(histogram, imageA.width, imageA.height);
+        int max = 255, min = 0;
+        /*
+        float[] cdf = getCDF(histogram, imageA.width, imageA.height);
+    	
+    	// We normalize it, searching for the min and max values:
+    	int size = imageA.width * imageA.height;
+    	
+    	int max = 0;
+    	int min = -1;
+
+    	for(int i = 0; i < cdf.length; i++){
+    		if(cdf[i] > 0 && min == -1) min = i;
+    		if(cdf[i] == 1.0) {
+				max = i;
+				break;
+			}
+    	}
+    	*/
         CLImage2d<FloatBuffer> imageB = context.createImage2d(Buffers.newDirectFloatBuffer(pixels.length), image.getWidth(), image.getHeight(), format); 
-/*
+        CLBuffer<FloatBuffer> cdfBuffer = context.createBuffer(Buffers.newDirectFloatBuffer(cdf), CLBuffer.Mem.READ_ONLY);
+
         out.println("used device memory: "
             + (imageA.getCLSize()+imageB.getCLSize())/1000000 +"MB");
 
-        // get a reference to the kernel function with the name 'calc_hist'
-        // and map the buffers to its input parameters.
-        CLKernel kernel = clParams.getKernel("copy_image");
-        kernel.putArgs(imageA, imageB).putArg(image.getWidth()).putArg(image.getHeight());
+        // Once done that, we call the equalize_image function:
+        CLKernel kernel = clParams.getKernel("equalize_image");
+        kernel.putArgs(imageA, imageB).putArg(cdfBuffer).putArg(cdf.length).putArg(min).putArg(max).rewind();
 
         // asynchronous write of data to GPU device,
         // followed by blocking read to get the computed results back.
         long time = nanoTime();
         queue.putWriteImage(imageA, false)
+        	 .putWriteBuffer(cdfBuffer, false)
+             .putWriteImage(imageB, true)
              .put2DRangeKernel(kernel, 0, 0, image.getWidth(), image.getHeight(), 0, 0)
-        .putReadImage(imageB, true);
+             .putReadImage(imageB, true);
         time = nanoTime() - time;
         
-  */      // show resulting image.
+        // show resulting image.
         FloatBuffer bufferB = imageB.getBuffer();
                     
         CLBuffer<FloatBuffer> buffer = context.createBuffer(bufferB, CLBuffer.Mem.READ_WRITE);
         BufferedImage resultImage = createImage(image.getWidth(), image.getHeight(), buffer); 
 
-    //    out.println("computation took: "+(time/1000000)+"ms");
+        out.println("computation took: "+(time/1000000)+"ms");
         
         return resultImage;    	
     }
