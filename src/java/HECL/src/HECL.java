@@ -69,6 +69,7 @@ public class HECL {
             
             // Call copyImage:
             BufferedImage resultImage = copyImage(clParams, image);
+            float[] pixels = resultImage.getRaster().getPixels(0, 0, resultImage.getWidth(), resultImage.getHeight(), (float[])null);
             show(resultImage, image.getWidth()/2, 50, "Resulting Image");
             
         } 
@@ -97,9 +98,9 @@ public class HECL {
     	CLContext context = clParams.getContext();
     	CLCommandQueue queue = clParams.getQueue();
     	
-  
+    	
         float[] pixels = image.getRaster().getPixels(0, 0, image.getWidth(), image.getHeight(), (float[])null);
-
+        
         // copy to direct float buffer
         FloatBuffer fb = Buffers.newDirectFloatBuffer(pixels);
         
@@ -127,7 +128,7 @@ public class HECL {
         
         // show resulting image.
        // FloatBuffer bufferB = buffer.getBuffer();
-                    
+        float test = buffer.getBuffer().get(0);
         //CLBuffer<FloatBuffer> buffer = context.createBuffer(bufferB, CLBuffer.Mem.READ_WRITE);
         BufferedImage resultImage = createImage(image.getWidth(), image.getHeight(), buffer); 
 

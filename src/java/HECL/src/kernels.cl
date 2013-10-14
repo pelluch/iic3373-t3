@@ -19,9 +19,20 @@
     	//CLK_ADDRESS_CLAMP - out-of-range image coordinates will return a border color.
         int x = get_global_id(0); 
         int y = get_global_id(1); 
-        int2 coord = (int2)(x,y); 
-        image[height*y + x] = image[height*y + x]*0.8f; 
+        //int color = get_global_id(2); 
+        int idx = x*height*3 + y*3;
         
+        float R = image[idx];
+        float G = image[idx + 1];
+        float B = image[idx + 2];
+        
+        float r = sqrt(pow(R, 2.0f) + pow(G, 2.0f) + pow(B, 2.0f));
+        float theta = B/r;
+        float phi = G/R;
+        
+       image[idx] = r;
+       image[idx + 1] = theta;
+       image[idx + 2] = phi;
     } 
 
     kernel void convert_to_spherical(read_only image2d_t input, write_only image2d_t output, const int width, const int height) {
