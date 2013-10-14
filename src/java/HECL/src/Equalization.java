@@ -17,15 +17,6 @@ import com.jogamp.opencl.CLKernel;
 public class Equalization {
 
 	private static final int HIST_SIZE = 256;
-
-
-    public static BufferedImage createImage(int width, int height, CLBuffer<FloatBuffer> buffer) {
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-        float[] pixels = new float[buffer.getBuffer().capacity()];
-        buffer.getBuffer().get(pixels).rewind();
-        image.getRaster().setPixels(0, 0, width, height, pixels);
-        return image;
-    }
 	
 	private static int[] getHistogram(CLParams clParams, CLImage2d<FloatBuffer> image)
     {   	
@@ -134,7 +125,7 @@ public class Equalization {
         FloatBuffer bufferB = imageB.getBuffer();
                     
         CLBuffer<FloatBuffer> buffer = context.createBuffer(bufferB, CLBuffer.Mem.READ_WRITE);
-        BufferedImage resultImage = createImage(image.getWidth(), image.getHeight(), buffer); 
+        BufferedImage resultImage = ImageUtils.createImage(image.getWidth(), image.getHeight(), buffer); 
 
         out.println("computation took: "+(time/1000000)+"ms");
         
