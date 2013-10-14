@@ -1,3 +1,19 @@
+	kernel void equalize_image_buffer(global float* input, global float* output, global float* cdf, int imgWidth, int imgHeight){
+    	//CLK_FILTER_NEAREST - Parecido a lo de bilinear filtering
+    	//CLK_ADDRESS_CLAMP - out-of-range image coordinates will return a border color.
+    	const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE|CLK_ADDRESS_CLAMP|CLK_FILTER_NEAREST; 
+
+    	int x = get_global_id(0);
+		int y = get_global_id(1);
+		
+        int coord = y * imgWidth + x;
+        float4 pixel_value = input[coord];
+        
+        float4 eq_pixel_value = cdf[(int)pixel_value.x];
+ 		
+        output[coord] = eq_pixel_value;
+	}
+
 	kernel void equalize_image(read_only image2d_t input, write_only image2d_t output, global float* cdf){
     	//CLK_FILTER_NEAREST - Parecido a lo de bilinear filtering
     	//CLK_ADDRESS_CLAMP - out-of-range image coordinates will return a border color.
@@ -12,7 +28,6 @@
         float4 eq_pixel_value = cdf[(int)pixel_value.x];
  		
         write_imagef(output, coord, eq_pixel_value); 
-		
 	}
 
 	kernel void merge_colHist(global int* colHistograms, global int* histogram, int colCount, int histSize){
@@ -43,6 +58,26 @@
     	}
     } 
     
+    kernel void calc_colHist_buffer(global float* input, int imgWidth, int imgHeight, global int* histogram, int histSize) {
+    	
+    	//CLK_FILTER_NEAREST - Parecido a lo de bilinear filtering
+    	//CLK_ADDRESS_CLAMP - out-of-range image coordinates will return a border color.
+    	const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE|CLK_ADDRESS_CLAMP|CLK_FILTER_NEAREST; 
+    
+    	int column = get_global_id(0); 
+    	
+    	for(int y = 0; y < imgHeight; y++)
+    	{
+            int coord = y * imgWidth + x;
+            float4 pixel_value = input[coord];
+			
+			int bin = round(pixel_value.x);
+			
+			if(bin < histSize)
+				histogram[column*histSize + bin]++;
+    	}
+    } 
+
     kernel void convert_to_spherical(global float * image, const int width, const int height ) {
     	
     	//CLK_FILTER_NEAREST - Parecido a lo de bilinear filtering
