@@ -84,7 +84,7 @@ public class HECL {
 
 	}
 	
-    private static int roundUp(int groupSize, int globalSize) {
+    public static int roundUp(int groupSize, int globalSize) {
         int r = globalSize % groupSize;
         if (r == 0) {
             return globalSize;
@@ -98,38 +98,33 @@ public class HECL {
     	CLContext context = clParams.getContext();
     	CLCommandQueue queue = clParams.getQueue();
     	
-    	
         float[] pixels = image.getRaster().getPixels(0, 0, image.getWidth(), image.getHeight(), (float[])null);
-        
-        // copy to direct float buffer
-        FloatBuffer fb = Buffers.newDirectFloatBuffer(pixels);
-        
-        // allocate a OpenCL buffer using the direct fb as working copy
-        CLBuffer<FloatBuffer> buffer = context.createBuffer(fb, CLBuffer.Mem.READ_WRITE);
-        
-        int localWorkSize = queue.getDevice().getMaxWorkGroupSize(); // Local work size dimensions
-        int globalWorkSize = roundUp(localWorkSize, fb.capacity());  // rounded up to the nearest multiple of the localWorkSize
-        
-        
-        System.out.println("Number of pixels: " + pixels.length);
-        System.out.println("Global work size: " + globalWorkSize);
-        System.out.println("Local work size: " + localWorkSize);
 
+        // We use ChanelOrder.INTENSITY because it's grey
+        CLImageFormat format = new CLImageFormat(ChannelOrder.INTENSITY, ChannelType.FLOAT);
+        CLImage2d<FloatBuffer> imageA = context.createImage2d(Buffers.newDirectFloatBuffer(pixels), image.getWidth(), image.getHeight(), format); 
+        CLImage2d<FloatBuffer> imageB = context.createImage2d(Buffers.newDirectFloatBuffer(pixels.length), image.getWidth(), image.getHeight(), format); 
+
+        out.println("used device memory: "
+            + (imageA.getCLSize()+imageB.getCLSize())/1000000 +"MB");
+
+        // get a reference to the kernel function with the name 'copy_image'
+        // and map the buffers to its input parameters.
         CLKernel kernel = clParams.getKernel("copy_image");
-        kernel.putArg(buffer).putArg(image.getWidth()).putArg(image.getHeight()).rewind();
-        
+        kernel.putArgs(imageA, imageB).putArg(image.getWidth()).putArg(image.getHeight());
+
+        // asynchronous write of data to GPU device,
+        // followed by blocking read to get the computed results back.
         long time = nanoTime();
-        queue.putWriteBuffer(buffer, false);
-        queue.put2DRangeKernel(kernel, 0, 0, image.getWidth(), image.getHeight(), 0, 0);
-        queue.putReadBuffer(buffer, true);
-        
-       // .putReadImage(imageB, true);
+        queue.putWriteImage(imageA, false)
+             .put2DRangeKernel(kernel, 0, 0, image.getWidth(), image.getHeight(), 0, 0)
+        .putReadImage(imageB, true);
         time = nanoTime() - time;
         
         // show resulting image.
-       // FloatBuffer bufferB = buffer.getBuffer();
-        float test = buffer.getBuffer().get(0);
-        //CLBuffer<FloatBuffer> buffer = context.createBuffer(bufferB, CLBuffer.Mem.READ_WRITE);
+        FloatBuffer bufferB = imageB.getBuffer();
+                    
+        CLBuffer<FloatBuffer> buffer = context.createBuffer(bufferB, CLBuffer.Mem.READ_WRITE);
         BufferedImage resultImage = createImage(image.getWidth(), image.getHeight(), buffer); 
 
         out.println("computation took: "+(time/1000000)+"ms");

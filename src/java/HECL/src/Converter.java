@@ -1,46 +1,49 @@
 import com.jogamp.common.nio.Buffers;
 import com.jogamp.opencl.CLBuffer;
-import com.jogamp.opencl.CLCommandQueue;
-import com.jogamp.opencl.CLContext;
-import com.jogamp.opencl.CLDevice;
-import com.jogamp.opencl.CLImage2d;
-import com.jogamp.opencl.CLImageFormat;
-import com.jogamp.opencl.CLImageFormat.*;
-
+import com.jogamp.opencl.CLKernel;
 import java.awt.image.BufferedImage;
-import java.awt.image.ColorModel;
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.FloatBuffer;
 
-import javax.imageio.ImageIO;
-import javax.swing.ImageIcon;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.SwingUtilities;
-
+import static java.lang.System.*;
 
 public class Converter {
 
 
 	
-	public static CLImage2d<FloatBuffer> convertToSpherical(CLParams clParams, BufferedImage inputImage) {
+	public static CLBuffer<FloatBuffer> convertToSpherical(CLParams clParams, BufferedImage image) {
 				
-		int width = inputImage.getWidth();
-		int height = inputImage.getHeight();
+		int width = image.getWidth();
+		int height = image.getHeight();
 		
-		float[] pixels = inputImage.getRaster().getPixels(0, 0, width, height, (float[])null);
-		CLImageFormat format = new CLImageFormat(ChannelOrder.RGB, ChannelType.FLOAT);
+		float[] pixels = image.getRaster().getPixels(0, 0, width, height, (float[])null);
 		
-		CLImage2d<FloatBuffer> outputImage = clParams.getContext().createImage2d(
-				Buffers.newDirectFloatBuffer(pixels),
-				width,
-				height,
-				format); 		
-		
-		
-		
-		return outputImage;
+		 // copy to direct float buffer
+        FloatBuffer fb = Buffers.newDirectFloatBuffer(pixels);
+        
+        // allocate a OpenCL buffer using the direct fb as working copy
+        CLBuffer<FloatBuffer> buffer = clParams.getContext().createBuffer(fb, CLBuffer.Mem.READ_WRITE);
+        
+        int localWorkSize = clParams.getQueue().getDevice().getMaxWorkGroupSize(); // Local work size dimensions
+        int globalWorkSize = HECL.roundUp(localWorkSize, fb.capacity());  // rounded up to the nearest multiple of the localWorkSize
+        
+        
+        System.out.println("Number of pixels: " + pixels.length);
+        System.out.println("Global work size: " + globalWorkSize);
+        System.out.println("Local work size: " + localWorkSize);
+
+        CLKernel kernel = clParams.getKernel("convert_to_spherical");
+        kernel.putArg(buffer).putArg(image.getWidth()).putArg(image.getHeight()).rewind();
+        
+        long time = nanoTime();
+        clParams.getQueue().putWriteBuffer(buffer, false);
+        clParams.getQueue().put2DRangeKernel(kernel, 0, 0, image.getWidth(), image.getHeight(), 0, 0);
+        clParams.getQueue().putReadBuffer(buffer, true);
+        
+        time = nanoTime() - time;
+
+        out.println("computation took: "+(time/1000000)+"ms");
+        return buffer;
+        
 		
 	}
 }
