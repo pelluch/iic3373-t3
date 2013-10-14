@@ -1,5 +1,12 @@
-  
-    kernel void calc_hist(read_only image2d_t input, int imgHeight, global int* histogram, int histSize) {
+	kernel void merge_colHist(global int* colHistograms, global int* histogram, int colCount, int histSize){
+		// There's one thread per histogram entry:
+		int x = get_global_id(0);
+		
+		for(int i = 0; i < colCount; i++)
+			histogram[x] += colHistograms[histSize * i + x];
+	}
+	
+    kernel void calc_colHist(read_only image2d_t input, int imgHeight, global int* histogram, int histSize) {
     	
     	//CLK_FILTER_NEAREST - Parecido a lo de bilinear filtering
     	//CLK_ADDRESS_CLAMP - out-of-range image coordinates will return a border color.
@@ -15,7 +22,7 @@
 			int bin = round(pixel_value.x);
 			
 			if(bin < histSize)
-				histogram[bin]++;
+				histogram[x*histSize + bin]++;
     	}
     } 
     

@@ -106,25 +106,39 @@ public class HECL {
         
     	// Array to store the histogram results
         int[] histogram = new int[HIST_SIZE];
-        histogram[0] = 30;
+        int colCount = image.getWidth();
         
-        CLBuffer<IntBuffer> histBuffer =  context.createBuffer(Buffers.newDirectIntBuffer(histogram),CLBuffer.Mem.WRITE_ONLY);
+        CLBuffer<IntBuffer> colHistBuffer =  context.createBuffer(Buffers.newDirectIntBuffer(colCount * HIST_SIZE),CLBuffer.Mem.READ_WRITE);
 
-        // get a reference to the kernel function with the name 'calc_hist'
-        // and map the buffers to its input parameters.
-        CLKernel kernel = clParams.getKernel("calc_hist");
-        kernel.putArg(image).putArg(image.height).putArg(histBuffer).putArg(HIST_SIZE);
+        // First, we calculate the histogram for each column of the image:
+        CLKernel kernel = clParams.getKernel("calc_colHist");
+        kernel.putArg(image).putArg(image.height).putArg(colHistBuffer).putArg(HIST_SIZE).rewind();
 
-        // asynchronous write of data to GPU device,
-        // followed by blocking read to get the computed results back.
         long time = nanoTime();
         queue.putWriteImage(image, false)
-             .putWriteBuffer(histBuffer, false)
+             .putWriteBuffer(colHistBuffer, false)
              .put2DRangeKernel(kernel, 0, 0, image.getWidth(), 1, 0, 0)
-             .putReadBuffer(histBuffer, true);
+             .putReadBuffer(colHistBuffer, true);
+        
+        // Once done that, we proceed to meerge all the col histograms:
+        CLBuffer<IntBuffer> histBuffer =  context.createBuffer(Buffers.newDirectIntBuffer(HIST_SIZE),CLBuffer.Mem.WRITE_ONLY);
+
+        kernel = clParams.getKernel("merge_colHist");
+        kernel.putArgs(colHistBuffer, histBuffer).putArg(colCount).putArg(HIST_SIZE).rewind();
+        
+        queue.putWriteBuffer(colHistBuffer, false)
+ 	         .putWriteBuffer(histBuffer, false)
+	         .put2DRangeKernel(kernel, 0, 0, image.getWidth(), 1, 0, 0)
+	         .putReadBuffer(histBuffer, true);
         time = nanoTime() - time;
         
         histBuffer.getBuffer().get(histogram);        
+        
+        int count = 0;
+        for(int i = 0; i < HIST_SIZE; i++)
+        	count += histogram[i];
+        
+        System.out.println(count + "=" + (image.width*image.height));
         
         return histogram;
     }
