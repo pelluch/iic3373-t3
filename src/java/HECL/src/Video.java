@@ -1,5 +1,6 @@
 import java.io.File;
 import java.io.IOException;
+
 import java.lang.ProcessBuilder.Redirect;
 import java.util.List;
 import java.util.ArrayList;
@@ -11,10 +12,12 @@ public class Video {
 	//This one has no extension
 	private String videoFileName;
 	private String videoDirectory;
+
 	
 	public String getVideoFilePath() {
 		return videoFilePath;
 	}
+
 
 	public List<String> getImageList() {
 		
@@ -41,11 +44,13 @@ public class Video {
 
 		if(videoFilePath == null) return false;
 
+
 		File videoFile = new File(videoFilePath);
 		if(!videoFile.exists()) {
 			System.out.println("Error: Input video does not exist");
 			return false;
 		}				
+
 
 		int pos = videoFilePath.lastIndexOf('.');
 		if(pos == -1) return false;
@@ -139,6 +144,7 @@ public class Video {
 				System.out.println("Thread interrutped while waiting for audio extraction");
 			}
 
+
 		} catch (IOException e) {
 			System.out.println("Error executing command");
 			e.printStackTrace();
@@ -146,6 +152,7 @@ public class Video {
 		}
 		
 		return true;
+
 
 	}
 	public boolean processVideo(float fps) {
@@ -158,6 +165,7 @@ public class Video {
 		
 		return true;
 	}
+
 
 
 
