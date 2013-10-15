@@ -68,6 +68,7 @@ public class Video {
 		String command = "/usr/bin/ffmpeg -y -i " + videoFilePath + " -vn " + 
 				"-ac " + nChannels + " -f " + audioFormat + 
 				" " + videoFileName + "." + audioFormat;
+		System.out.println(command);
 		return command;
 	}
 
@@ -76,7 +77,7 @@ public class Video {
 		String command = "/usr/bin/ffmpeg -y -i " + videoFilePath + " -r " + fps + 
 				" -ss " + startingSeconds + " -t " + duration + 
 				" -q:v 1 input/image-%3d.jpeg";
-
+		System.out.println(command);
 		ProcessBuilder extractFrameBuilder = new ProcessBuilder(command.split(" "));
 		extractFrameBuilder.redirectOutput(Redirect.INHERIT);
 		extractFrameBuilder.redirectError(Redirect.INHERIT);
@@ -103,7 +104,7 @@ public class Video {
 		Video output = null;
 		String command = "/usr/bin/ffmpeg -start_number 1 -y -i " + framePattern + " -r " + fps + 
 				" -vcodec mjpeg -q:v 1 " + outputFileName;
-
+		System.out.println(command);
 		ProcessBuilder videoBuilder = new ProcessBuilder(command.split(" "));
 		videoBuilder.redirectOutput(Redirect.INHERIT);
 		videoBuilder.redirectError(Redirect.INHERIT);
@@ -129,7 +130,7 @@ public class Video {
 	public boolean extractAudio() {
 
 		String audioCommand = getAudioExtractionCommand();
-
+		
 		try {
 
 			//First we extract sound
@@ -162,7 +163,7 @@ public class Video {
 		Video output = null;
 		String audioCommand = "/usr/bin/ffmpeg -y -i " + inputVideo + " -i " + inputAudio + 
 				" -map 0:0 -map 1:0,1 -c:v copy -c:a copy " + outputFileName;
-
+		System.out.println(audioCommand);
 		try {
 
 			//First we extract sound
