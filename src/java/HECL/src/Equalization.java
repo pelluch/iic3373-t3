@@ -137,7 +137,7 @@ public class Equalization {
     	CLCommandQueue queue = clParams.getQueue();
 
         //CLImage2d<FloatBuffer> imageA = context.createImage2d(Buffers.newDirectFloatBuffer(pixels), image.getWidth(), image.getHeight(), format); 
-        CLBuffer<FloatBuffer> imageA = Converter.convertToSpherical(clParams, image);
+        CLBuffer<FloatBuffer> imageA = Converter.convertRgbTo(clParams, image,Converter.ConversionType.SPHERICAL);
     	int imageLength = imageA.getCLCapacity();
     	
         System.out.println("imageA capacity = " + imageLength);
@@ -179,7 +179,8 @@ public class Equalization {
         float[] sphericalImageFloats = new float[imageLength];
         buffer.getBuffer().get(sphericalImageFloats);
         
-        BufferedImage resultImage = Converter.convertToRGB(clParams, sphericalImageFloats,image.getWidth(), image.getHeight());
+        BufferedImage resultImage = Converter.convertImageToRGB(clParams, sphericalImageFloats,image.getWidth(), image.getHeight(),
+        		Converter.ConversionType.SPHERICAL);
 
         out.println("computation took: "+(time/1000000)+"ms");
         

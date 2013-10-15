@@ -1,3 +1,4 @@
+
 import com.jogamp.common.nio.Buffers;
 import com.jogamp.opencl.CLBuffer;
 import com.jogamp.opencl.CLCommandQueue;
@@ -23,23 +24,11 @@ public class HECL {
 
 	private static CLParams clParams = null;
 
-	public static float[] testRgbToSpherical() {
+	public static float[] testConversionFromRgb(Converter.ConversionType type) {
 
 
 		BufferedImage image = ImageUtils.readImage("lena_f.png");
-		CLBuffer<FloatBuffer> resultImage = Converter.convertToSpherical(clParams, image);
-		float[] pixels = new float[image.getData().getDataBuffer().getSize()];
-		resultImage.getBuffer().get(pixels, 0, pixels.length);
-		for(int i = 0; i < 100; ++i) {
-			System.out.print(pixels[i] + " ");
-		}
-		System.out.println();
-		return pixels;
-	}
-	
-	public static float[] testRgbToHsv() {
-		BufferedImage image = ImageUtils.readImage("lena_f.png");
-		CLBuffer<FloatBuffer> resultImage = Converter.convertRgbToHsv(clParams, image);
+		CLBuffer<FloatBuffer> resultImage = Converter.convertRgbTo(clParams, image, type);
 		float[] pixels = new float[image.getData().getDataBuffer().getSize()];
 		resultImage.getBuffer().get(pixels, 0, pixels.length);
 		for(int i = 0; i < 100; ++i) {
@@ -49,20 +38,13 @@ public class HECL {
 		return pixels;
 	}
 
-	public static void testSphericalToRgb(float[] sphericalImageFloats) {
+	public static void testConversionToRgb(float[] sphericalImageFloats, Converter.ConversionType type) {
 		BufferedImage image = null;
 		image = ImageUtils.readImage("lena_f.png");
-		BufferedImage rgbImage = Converter.convertToRGB(clParams, sphericalImageFloats, image.getWidth(), image.getHeight());        
+		BufferedImage rgbImage = Converter.convertImageToRGB(clParams, sphericalImageFloats, image.getWidth(), image.getHeight(),
+				type);        
 		ImageUtils.show(rgbImage, 0, 0, "RGB Image");
 	}
-	
-	public static void testHsvToRgb(float[] sphericalImageFloats) {
-		BufferedImage image = null;
-		image = ImageUtils.readImage("lena_f.png");
-		BufferedImage rgbImage = Converter.convertHsvToRGB(clParams, sphericalImageFloats, image.getWidth(), image.getHeight());        
-		ImageUtils.show(rgbImage, 0, 0, "RGB Image");
-	}
-
 
 	private static void testCopyImage()
 	{
@@ -155,10 +137,11 @@ public class HECL {
 
 				switch(choice) {
 				case 1:
-					testRgbToSpherical();  		
+					testConversionFromRgb(Converter.ConversionType.SPHERICAL);		
 					break;
 				case 2:
-					testSphericalToRgb(testRgbToSpherical());
+					testConversionToRgb(testConversionFromRgb(Converter.ConversionType.SPHERICAL),
+							Converter.ConversionType.SPHERICAL);
 					break;
 				case 3:
 					testCopyImage();
@@ -167,10 +150,11 @@ public class HECL {
 					testVideo();
 					break;
 				case 5:
-					testRgbToHsv();
+					testConversionFromRgb(Converter.ConversionType.HSV);	
 					break;
 				case 6:
-					testHsvToRgb(testRgbToHsv());
+					testConversionToRgb(testConversionFromRgb(Converter.ConversionType.HSV),
+							Converter.ConversionType.HSV);
 				case 7:
 					testGreyEqualization();
 					break;

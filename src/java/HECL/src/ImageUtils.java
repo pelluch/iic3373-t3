@@ -1,4 +1,5 @@
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.FloatBuffer;
@@ -14,6 +15,7 @@ import com.jogamp.opencl.CLBuffer;
 
 public class ImageUtils {
 
+	//Creates a BufferedImage from an OpenCL buffer
     public static BufferedImage createImage(int width, int height, CLBuffer<FloatBuffer> buffer, int imageType) {
     	if(!(imageType == BufferedImage.TYPE_INT_RGB || imageType == BufferedImage.TYPE_BYTE_GRAY))
     		return null;
@@ -28,6 +30,22 @@ public class ImageUtils {
         return HECL.class.getResourceAsStream(filename);
     }
     
+    //Save image to file fileName
+    public static boolean saveImage(BufferedImage image, String fileName) {
+    	 File outputfile = new File(fileName);
+    	 try {
+			ImageIO.write(image, "jpeg", outputfile);
+		} catch (IOException e) {
+			System.out.println("Error writing buffered image to disk");
+			e.printStackTrace();
+			return false;
+		}
+    	 
+    	 return true;
+    	
+    }
+    
+    //Reads an image from disk to a BufferedImage object
     public static BufferedImage readImage(String filename) {
         try {
 			return ImageIO.read(getStreamFor(filename));
@@ -37,7 +55,7 @@ public class ImageUtils {
 		}
     }
 
-    
+    //Show a BufferedImage object
 	public static void show(final BufferedImage image, final int x, final int y, final String title) {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
