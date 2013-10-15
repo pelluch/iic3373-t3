@@ -8,11 +8,13 @@ import com.jogamp.opencl.CLImageFormat.*;
 import com.jogamp.opencl.CLKernel;
 
 import java.awt.image.BufferedImage;
-import java.io.IOException;
+import java.io.*;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.InputMismatchException;
 import java.util.Scanner;
+
+import javax.imageio.ImageIO;
 
 import static java.lang.System.*;
 
@@ -106,7 +108,7 @@ public class HECL {
 
 	public static void testVideo() {
 		Video inputVideo = new Video("input/short.mp4");
-		inputVideo.processVideo(25);
+		inputVideo.processVideo(clParams, 25);
 	}
 
 	private static void testColorEqualization() {
@@ -215,7 +217,6 @@ public class HECL {
 		}
 		System.exit(0);
 	}
-
 
 	public static int roundUp(int groupSize, int globalSize) {
 		int r = globalSize % groupSize;

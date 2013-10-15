@@ -1,9 +1,13 @@
+import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 
 import java.lang.ProcessBuilder.Redirect;
 import java.util.List;
 import java.util.ArrayList;
+
+import javax.imageio.ImageIO;
 
 public class Video {
 
@@ -188,11 +192,12 @@ public class Video {
 		return output;
 	}
 	
-	public boolean processVideo(float fps) {
+	public boolean processVideo(CLParams clParams, float fps) {
 		
 		if(!checkVideoPath()) return false;
 		if(!extractAudio()) return false;
 		if(!extractFrames(fps, 0, 40)) return false;
+		if(!processSequence(clParams)) return false;
 		Video equalized = createFromFrames(fps, "input/image-%3d.jpeg", "input/equalized.mp4");
 		if(equalized == null) return false;
 		if(createFromStreams("input/equalized.mp4", audioFilePath, "input/final_video.mp4") == null) return false;
@@ -200,6 +205,59 @@ public class Video {
 		return true;
 	}
 
+	// array of supported extensions (use a List if you prefer)
+    private final String[] EXTENSIONS = new String[]{
+        "jpeg", "jpg" // and other formats you need
+    };
+    
+    // filter to identify images based on their extensions
+    private final FilenameFilter IMAGE_FILTER = new FilenameFilter() {
+
+        @Override
+        public boolean accept(final File dir, String name) {
+            for (final String ext : EXTENSIONS) {
+                if (name.endsWith("." + ext)) {
+                    return (true);
+                }
+            }
+            return (false);
+        }
+    };
+	
+    // Looks for video name in input directory
+	private boolean processSequence(CLParams clParams)
+	{
+		File dir = new File("input");
+		
+		if (dir.isDirectory()) { // make sure it's a directory
+            for (final File f : dir.listFiles(IMAGE_FILTER)) {
+                BufferedImage img = null;
+
+                try {
+                    img = ImageIO.read(f);
+
+                    BufferedImage result = Equalization.equalizeBufferImage(clParams, img);
+                    
+                    // done that, we write the file back
+                    ImageIO.write(result, "jpeg", f);
+
+                    // you probably want something more involved here
+                    // to display in your UI
+                    System.out.println("image: " + f.getName());
+                    System.out.println(" width : " + img.getWidth());
+                    System.out.println(" height: " + img.getHeight());
+                    System.out.println(" size  : " + f.length());
+                } catch (final IOException e) {
+                    // handle errors here
+                	return false;
+                }
+            }
+            
+            return true;
+        }
+		return false;
+	}
+	
 
 
 
