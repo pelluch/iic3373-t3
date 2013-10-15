@@ -12,7 +12,7 @@ public class Video {
 	//This one has no extension
 	private String videoFileName;
 	private String videoDirectory;
-
+	private String audioFilePath;
 	
 	public String getVideoFilePath() {
 		return videoFilePath;
@@ -62,8 +62,9 @@ public class Video {
 
 	private String getAudioExtractionCommand() {
 
-		int nChannels = 2;
+		int nChannels = 2;		
 		String audioFormat = "mp3";		
+		audioFilePath = videoFileName + "." + audioFormat;
 		String command = "/usr/bin/ffmpeg -y -i " + videoFilePath + " -vn " + 
 				"-ac " + nChannels + " -f " + audioFormat + 
 				" " + videoFileName + "." + audioFormat;
@@ -155,13 +156,46 @@ public class Video {
 
 
 	}
+	
+	public static Video createFromStreams(String inputVideo, String inputAudio, String outputFileName) {	
+		
+		Video output = null;
+		String audioCommand = "/usr/bin/ffmpeg -y -i " + inputVideo + " -i " + inputAudio + 
+				" -map 0:0 -map 1:0,1 -c:v copy -c:a copy " + outputFileName;
+
+		try {
+
+			//First we extract sound
+			ProcessBuilder audioBuilder = new ProcessBuilder(audioCommand.split(" "));
+			audioBuilder.redirectOutput(Redirect.INHERIT);
+			audioBuilder.redirectError(Redirect.INHERIT);
+			audioBuilder.redirectInput(Redirect.INHERIT);
+			Process process = audioBuilder.start();	
+			try {
+				int exitValue = process.waitFor();
+				if(exitValue != 0) return null;
+			} catch (InterruptedException e) {
+				System.out.println("Thread interrutped while waiting for audio extraction");
+			}
+
+
+		} catch (IOException e) {
+			System.out.println("Error executing command");
+			e.printStackTrace();
+			return null;
+		}
+		output = new Video(outputFileName);
+		return output;
+	}
+	
 	public boolean processVideo(float fps) {
 		
 		if(!checkVideoPath()) return false;
 		if(!extractAudio()) return false;
-		if(!extractFrames(fps, 0, 240)) return false;
-		
-		if(createFromFrames(fps, "input/image-%3d.jpeg", "equalized.mp4") == null) return false;
+		if(!extractFrames(fps, 0, 40)) return false;
+		Video equalized = createFromFrames(fps, "input/image-%3d.jpeg", "input/equalized.mp4");
+		if(equalized == null) return false;
+		if(createFromStreams("input/equalized.mp4", audioFilePath, "input/final_video.mp4") == null) return false;
 		
 		return true;
 	}
