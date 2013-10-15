@@ -36,6 +36,18 @@ public class HECL {
 		System.out.println();
 		return pixels;
 	}
+	
+	public static float[] testRgbToHsv() {
+		BufferedImage image = ImageUtils.readImage("lena_f.png");
+		CLBuffer<FloatBuffer> resultImage = Converter.convertRgbToHsv(clParams, image);
+		float[] pixels = new float[image.getData().getDataBuffer().getSize()];
+		resultImage.getBuffer().get(pixels, 0, pixels.length);
+		for(int i = 0; i < 100; ++i) {
+			System.out.print(pixels[i] + " ");
+		}
+		System.out.println();
+		return pixels;
+	}
 
 	public static void testSphericalToRgb(float[] sphericalImageFloats) {
 		BufferedImage image = null;
@@ -43,6 +55,14 @@ public class HECL {
 		BufferedImage rgbImage = Converter.convertToRGB(clParams, sphericalImageFloats, image.getWidth(), image.getHeight());        
 		ImageUtils.show(rgbImage, 0, 0, "RGB Image");
 	}
+	
+	public static void testHsvToRgb(float[] sphericalImageFloats) {
+		BufferedImage image = null;
+		image = ImageUtils.readImage("lena_f.png");
+		BufferedImage rgbImage = Converter.convertHsvToRGB(clParams, sphericalImageFloats, image.getWidth(), image.getHeight());        
+		ImageUtils.show(rgbImage, 0, 0, "RGB Image");
+	}
+
 
 	private static void testCopyImage()
 	{
@@ -98,12 +118,14 @@ public class HECL {
 				"2. Test Spherical to RGB\n" + 
 				"3. Test Copy image\n" + 
 				"4. Test Video processing\n" + 
-				"5. Exit");
+				"5. Test RGB to HSV\n" + 
+				"6. Test HSV to RGB\n" + 
+				"7. Exit");
 		boolean exit = false;
 		try {
 			if(reader.hasNext()) {
 				int choice = reader.nextInt();
-				if(choice < 0 || choice > 5) return false;
+				if(choice < 0 || choice > 6) return false;
 
 				switch(choice) {
 				case 1:
@@ -119,6 +141,11 @@ public class HECL {
 					testVideo();
 					break;
 				case 5:
+					testRgbToHsv();
+					break;
+				case 6:
+					testHsvToRgb(testRgbToHsv());
+				case 7:
 					exit = true;
 					break;
 				}
