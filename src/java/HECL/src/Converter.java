@@ -55,7 +55,7 @@ public class Converter {
 		time = nanoTime() - time;
 		out.println("computation took: "+(time/1000000)+"ms");
 
-		BufferedImage rgbImage = ImageUtils.createImage(width, height, sphericalImageBuffer);
+		BufferedImage rgbImage = ImageUtils.createImage(width, height, sphericalImageBuffer, BufferedImage.TYPE_INT_RGB);
 
 		return rgbImage;   
 	}
@@ -104,7 +104,7 @@ public class Converter {
 		time = nanoTime() - time;
 		out.println("computation took: "+(time/1000000)+"ms");
 
-		BufferedImage rgbImage = ImageUtils.createImage(width, height, sphericalImageBuffer);
+		BufferedImage rgbImage = ImageUtils.createImage(width, height, sphericalImageBuffer, BufferedImage.TYPE_INT_RGB);
 
 		return rgbImage;   
 	}
