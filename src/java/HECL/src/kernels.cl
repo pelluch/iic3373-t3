@@ -72,7 +72,7 @@
     	}
     } 
 
-    kernel void convert_to_spherical(global float * image, const int width, const int height ) {
+    kernel void convert_rgb_to_spherical(global float * image, const int width, const int height ) {
     	
         int x = get_global_id(0); 
         int y = get_global_id(1); 
@@ -94,7 +94,7 @@
     } 
     
     
-    kernel void convert_to_rgb(global float * image, const int width, const int height ) {
+    kernel void convert_spherical_to_rgb(global float * image, const int width, const int height ) {
     	
         int x = get_global_id(0); 
         int y = get_global_id(1); 
