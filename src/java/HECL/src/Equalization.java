@@ -126,7 +126,7 @@ public class Equalization {
     	
     	// Normalizamos:
     	for(int i = 0; i < histogram.length; i++)
-    		cdf[i] = Math.round((cdf[i] - cdf_min)/(imgWidth * imgHeight - cdf_min) * (histogram.length - 1));
+    		cdf[i] = Math.round((cdf[i] - cdf_min)/(imgWidth * imgHeight - cdf_min) * 255);//(histogram.length - 1));
 
     	return cdf;
     }

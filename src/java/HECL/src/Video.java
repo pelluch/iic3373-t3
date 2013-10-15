@@ -237,11 +237,14 @@ public class Video {
                 try {
                     img = ImageIO.read(f);
 
-                    BufferedImage result = Equalization.equalizeBufferImage(clParams, img);
+                    img = Equalization.equalizeBufferImage(clParams, img);
                     
                     // done that, we write the file back
-                    ImageIO.write(result, "jpeg", f);
+                    ImageIO.write(img, "jpeg", f);
+                    img.flush();
 
+                    System.gc();
+                    
                     // you probably want something more involved here
                     // to display in your UI
                     System.out.println("image: " + f.getName());
