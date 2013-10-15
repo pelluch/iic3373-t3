@@ -98,7 +98,7 @@ public class HECL {
 		FloatBuffer bufferB = imageB.getBuffer();
 
 		CLBuffer<FloatBuffer> buffer = context.createBuffer(bufferB, CLBuffer.Mem.READ_WRITE);
-		BufferedImage resultImage = ImageUtils.createImage(image.getWidth(), image.getHeight(), buffer); 
+		BufferedImage resultImage = ImageUtils.createImage(image.getWidth(), image.getHeight(), buffer, BufferedImage.TYPE_INT_RGB); 
 		ImageUtils.show(resultImage, 0, 0, "Image copy");
 		out.println("computation took: "+(time/1000000)+"ms");
 
@@ -107,6 +107,29 @@ public class HECL {
 	public static void testVideo() {
 		Video inputVideo = new Video("input/short.mp4");
 		inputVideo.processVideo(25);
+	}
+
+	private static void testColorEqualization() {
+		BufferedImage image = ImageUtils.readImage("rgb_uneq.jpg");
+		ImageUtils.show(image, 0, 0, "Original Image");
+		
+		// Get equalized Image:		
+		image = Equalization.equalizeBufferImage(clParams, image);
+		
+		// Print results:
+		ImageUtils.show(image, 0, 0, "Equalized Image");		
+	}
+
+	private static void testGreyEqualization() {
+		BufferedImage image = ImageUtils.readImage("lena_g_f.png");
+		ImageUtils.show(image, 0, 0, "Original Image");
+		
+		// Get equalized Image:
+		CLImageFormat format = new CLImageFormat(ChannelOrder.INTENSITY, ChannelType.FLOAT);
+		image = Equalization.equalizeImage(clParams, image, format);
+		
+		// Print results:
+		ImageUtils.show(image, 0, 0, "Equalized Image");		
 	}
 	
 	public static boolean Menu() {
@@ -120,12 +143,15 @@ public class HECL {
 				"4. Test Video processing\n" + 
 				"5. Test RGB to HSV\n" + 
 				"6. Test HSV to RGB\n" + 
-				"7. Exit");
+				"7. Test Grey Equalization\n" +
+				"8. Test Color Equalization\n" +
+				"9. Exit");
+
 		boolean exit = false;
 		try {
 			if(reader.hasNext()) {
 				int choice = reader.nextInt();
-				if(choice < 0 || choice > 6) return false;
+				if(choice < 0 || choice > 9) return false;
 
 				switch(choice) {
 				case 1:
@@ -146,6 +172,12 @@ public class HECL {
 				case 6:
 					testHsvToRgb(testRgbToHsv());
 				case 7:
+					testGreyEqualization();
+					break;
+				case 8:
+					testColorEqualization();
+					break;
+				case 9:
 					exit = true;
 					break;
 				}
@@ -181,6 +213,7 @@ public class HECL {
 		while(!exit) {
 			exit = Menu();
 		}
+		System.exit(0);
 	}
 
 
