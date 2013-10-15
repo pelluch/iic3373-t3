@@ -229,6 +229,12 @@ public class Video {
 	private boolean processSequence(CLParams clParams)
 	{
 		File dir = new File("input");
+		Runtime r = Runtime.getRuntime();
+        r.gc();
+		
+		float freeMem = r.freeMemory();
+		
+		System.out.println("Free memory at start: " + freeMem/1000 + " KB");
 		
 		if (dir.isDirectory()) { // make sure it's a directory
             for (final File f : dir.listFiles(IMAGE_FILTER)) {
@@ -237,13 +243,13 @@ public class Video {
                 try {
                     img = ImageIO.read(f);
 
+                    clParams.release();
+                    clParams.init();
                     img = Equalization.equalizeBufferImage(clParams, img);
                     
                     // done that, we write the file back
                     ImageIO.write(img, "jpeg", f);
                     img.flush();
-
-                    System.gc();
                     
                     // you probably want something more involved here
                     // to display in your UI
@@ -251,6 +257,13 @@ public class Video {
                     System.out.println(" width : " + img.getWidth());
                     System.out.println(" height: " + img.getHeight());
                     System.out.println(" size  : " + f.length());
+                    freeMem = r.freeMemory();            		
+            		System.out.println("Remaining memory: " + freeMem/1000 + " KB");
+
+                    // Finally, we dispose the object:
+                    img = null;
+                    r.gc();
+                
                 } catch (final IOException e) {
                     // handle errors here
                 	return false;
