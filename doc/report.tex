@@ -14,4 +14,72 @@
 \title{Tarea 3 : Introducción a OpenCL \\ IIC3373}
 \begin{document}
 	\maketitle
+	\newpage
+	\section{Funcionalidades Implementadas}
+
+	El programa elaborado cumple hasta la fundionalidad número 7 especificada, vale decir: Recibe un video a color de más de 30 segundos y lo devuelve ecualizado a al menos 25 fps y con el mismo audio original. En la carpeta input, se encuentra el video de prueba utilizado por los alumnos, llamado short.mp4. El video tiene 40 segundos de duración, está en color y tiene audio stereo. 
+
+	\section{Simplificaciones}
+
+	Para el correcto funcionamiento del programa, se hicieron algunas simplificaciones, no por falta de capacidad pero m\'as bien porque se consider\'o que no era necesario tener en cuenta todos los formatos posibles de im\'agenes y videos para tener una buena demostraci\'on del funcionamiento.
+	\begin{enumerate}
+	\item La imagen de prueba est\'a en formato RGB, donde sus elementos est\'an descritos por un float entre 0 y 255
+	\item El video de prueba tiene audio stereo
+	\end{enumerate}
+
+	\section{Algoritmo}
+	El algoritmo consiste en los siguientes pasos:
+	\subsection{Procesamiento del video}
+	Primeramente, se extraen los frames y el sonido del video original de forma separada. Al tener el audio en un archivo a parte, se permite ecualizar tranquilamente el video sin modificar el audio. La extracci\'on de los frames se hace utilizando el programa ffmpeg, invocado por Java externamente, y se asume que se encuentra en el computador del usuario. Mediante diversas l\'ineas de comando, se pueden ejecutar las funcionalidades deseadas. Ellas son:
+	\begin{enumerate}
+		\item Extracci\'on del audio - /usr/bin/ffmpeg -y -i input/short.mp4 -vn -ac 2 -f mp3 input/short.mp3
+		\item Extracci\'on de frames - /usr/bin/ffmpeg -y -i input/short.mp4 -r 25.0 -ss 0 -t 40 -q:v 1 input/image-\%3d.jpeg
+		\item Uni\'on de frames (despu\'es de la ecualizaci\'on) - /usr/bin/ffmpeg -start\_number 1 -y -i input/image-\%3d.jpeg -r 25.0 -vcodec mjpeg -q:v 1 input/equalized.mp4
+	\end{enumerate}
+	En general: 
+	\begin{itemize}
+		\item -i = input
+		\item -r = frame rate
+		\item -y = reemplazar
+		\item -ss = tiempo de comienzo
+		\item -t = duraci\'on
+		\item -vcodec, -acodec = codecs utilizados
+		\item -f = formato de audio
+		\item -q:v, q:a = calidad del video y audio
+	\end{itemize}
+	\subsection{Ecualizaci\'on}
+	Para la ecualizaci\'on del video, se utiliza el cl\'asico algoritmo descrito en \cite{equalization}. Cl\'asicamente, con im\'agenes de tonos grises, este algoritma funciona obteniendo, primero, la frecuencia de aparici\'on de cada nivel de gris en una imagen. Una imagen con buen contraste se obtiene haciendo que el histograma cumulativo de tonos en una imagen sea aproximadamente lineal. 
+
+	El problema resulta cuando se quiere tratar con im\'agenes en colores, en donde ecualizar por canal usando RGB, por ejemplo, tiene malos resultados pues la informaci\'on del contraste viene entremezclada entre los canales. Para solucionar este problema, se decidi\'on utilizar uno de los approach mencionados en \cite{paper}, que consiste en primero transformar la imagen al espacio de colores HSV. Esto tiene la gracia de que el canal V, equivalente a la intensidad, resume bastante bien la informaci\'on del contraste. Luego, se puede ecualizar sobre este canal para luego transformar de vuelta a RGB y rearmar el video.
+
+	\subsection{Paralelismo}
+	Por supuesto, la gracia de esto es que casi todos los procedimientos son altamente paralelos. Considerando el algoritmo descrito, en la transformaci\'on de espacio de colores, el valor final de un pixel es independiente de aquellos que lo rodean.
+	Por el otro lado, para el c\'alculo de histogramas, aunque s\'i hay mayor dependencia, se puede calcular el histograma por partes. En este caso, se decidi\'o calcular primero el histograma por columnas, dado que generalmente las im\'agenes cuentan con m\'as columnas que filas. Al final se pueden sumar estos histogramas para obtener el histograma final.
+	Para el c\'alculo de histogramas y transformaci\'on de colores, se utilizaron diversas funciones de kernel con OpenCL. El uso de este mismo se hizo a trav\'es de un wrapper de OpenCL para Java, JOCL \cite{JOCL}, que facilit\'o la implementaci\'on de los diversos algoritmos y maneja buffers, kernels y otros elementos de OpenCL utilizando un approacho orientado a objetos.	
+
+	\subsection{Formaci\'on del nuevo video}
+	Para cumplir con esta funci\'on, se reintegraron los frames procesados por OpenCL con la metodolog\'ia descrita anteriormente, utilizando ffmpeg. Una posibilidad habr\'ia sido paralelizar tambi\'en esta parte, aunque la complejidad agregada era mayor pues habr\'ia requerido meterse con encodings de video, por lo que se rechaz\'o esta opci\'on. Otro motivo por el cual se decidi\'on no paralelizar este proceso es que usando ffmpeg externamente, el mayor problema resulta ser el input y output con el disco duro, por lo que las ganancias de paralelizar este proceso (incluso via CPU, por ejemplo) habr\'ian sido bastante menores.
+
+	Para la integraci\'on del audio, simplemente se unen los tracks de audio y video ecualizado a trav\'es de los m\'etodos en la clase Video.java, que utilizan, nuevamente, ffmpeg.
+
+\begin{thebibliography}{9}
+
+\bibitem{equalization}
+  Robert Krutsch and David Tenorio,
+  \emph{Histogram Equalization}.
+  Freescale Semiconductor
+
+\bibitem{paper}
+  Fan-Chieh Cheng, Shanq-Jang Ruan and Chang-Hong Lin
+  \emph{Color Contrast Enhancement using automatic weighting mean-separated histogram equalization with spherical color model}
+  International Journal of Innovativa Computing, Information and Control
+  Volume 7, Number 9, September 2011
+
+  \bibitem{JOCL}
+  http://jogamp.org/jocl/www/
+  \emph{Java Bindings for the OpenCL API}
+  
+
+\end{thebibliography}
+
 \end{document}
